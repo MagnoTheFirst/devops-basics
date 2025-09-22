@@ -1,0 +1,185 @@
+# Linux Befehle Cheatsheet
+
+## Datei- und Verzeichnis-Operationen
+ls                     - Verzeichnisinhalt auflisten
+    Beispiel: ls -la /home/user
+ls -la                 - Alle Dateien mit Details auflisten (Berechtigungen, Besitzer, Größe, Datum)
+    Beispiel: ls -la /var/log/
+cd [directory]         - Verzeichnis wechseln
+    Beispiel: cd /home/user/Documents
+pwd                    - Aktuelles Arbeitsverzeichnis anzeigen
+    Beispiel: pwd
+mkdir [directory]      - Verzeichnis erstellen
+    Beispiel: mkdir /home/user/projects
+rmdir [directory]      - Leeres Verzeichnis entfernen
+    Beispiel: rmdir /home/user/empty_folder
+rm [file]              - Datei entfernen
+    Beispiel: rm /home/user/old_file.txt
+rm -rf [directory]     - Verzeichnis und allen Inhalt rekursiv entfernen
+    Beispiel: rm -rf /home/user/temp_folder
+cp [source] [dest]     - Datei oder Verzeichnis kopieren
+    Beispiel: cp config.txt config_backup.txt
+mv [source] [dest]     - Datei/Verzeichnis verschieben/umbenennen
+    Beispiel: mv old_name.txt new_name.txt
+find [path] -name [pattern] - Dateien nach Namen suchen
+    Beispiel: find /home -name "*.txt"
+find [path] -type f -exec grep -l "pattern" {} \; - Dateien mit bestimmtem Text suchen
+    Beispiel: find /var/log -type f -exec grep -l "error" {} \;
+
+## Dateiinhalt-Operationen
+cat [file]             - Dateiinhalt anzeigen
+    Beispiel: cat /etc/passwd
+less [file]            - Dateiinhalt seitenweise anzeigen
+    Beispiel: less /var/log/syslog
+head [file]            - Erste 10 Zeilen einer Datei anzeigen
+    Beispiel: head /var/log/auth.log
+head -n 20 [file]      - Erste 20 Zeilen einer Datei anzeigen
+    Beispiel: head -n 20 /etc/services
+tail [file]            - Letzte 10 Zeilen einer Datei anzeigen
+    Beispiel: tail /var/log/syslog
+tail -f [file]         - Dateiänderungen verfolgen (nützlich für Logs)
+    Beispiel: tail -f /var/log/apache2/access.log
+grep "pattern" [file]  - Nach Muster in Datei suchen
+    Beispiel: grep "error" /var/log/syslog
+grep -r "pattern" [dir] - Rekursiv in Verzeichnis suchen
+    Beispiel: grep -r "TODO" /home/user/projects/
+sort [file]            - Dateiinhalt sortieren
+    Beispiel: sort /etc/passwd
+uniq [file]            - Doppelte Zeilen entfernen
+    Beispiel: sort names.txt | uniq
+wc [file]              - Zeilen, Wörter, Zeichen zählen
+    Beispiel: wc /etc/passwd
+wc -l [file]           - Nur Zeilen zählen
+    Beispiel: wc -l /var/log/syslog
+
+## Dateiberechtigungen
+chmod 755 [file]       - Berechtigungen setzen (rwxr-xr-x)
+    Beispiel: chmod 755 /home/user/script.sh
+chmod +x [file]        - Datei ausführbar machen
+    Beispiel: chmod +x install.sh
+chown [user]:[group] [file] - Dateieigentümer ändern
+    Beispiel: chown root:root /etc/important_config
+sudo                   - Befehl als anderer Benutzer ausführen (meist root)
+    Beispiel: sudo apt update
+
+## Prozess-Management
+ps aux                 - Alle laufenden Prozesse auflisten
+    Beispiel: ps aux | grep nginx
+top                    - Laufende Prozesse anzeigen (Echtzeit)
+    Beispiel: top
+htop                   - Erweiterte Version von top
+    Beispiel: htop
+kill [PID]             - Prozess nach ID beenden
+    Beispiel: kill 1234
+killall [process_name] - Alle Prozesse mit Namen beenden
+    Beispiel: killall firefox
+jobs                   - Aktive Jobs auflisten
+    Beispiel: jobs
+bg                     - Job in Hintergrund versetzen
+    Beispiel: bg %1
+fg                     - Job in Vordergrund holen
+    Beispiel: fg %1
+nohup [command] &      - Befehl im Hintergrund ausführen, Hangup-Signal ignorieren
+    Beispiel: nohup python3 long_script.py &
+
+## System-Informationen
+uname -a               - System-Informationen
+    Beispiel: uname -a
+whoami                 - Aktueller Benutzername
+    Beispiel: whoami
+id                     - Benutzer- und Gruppen-IDs
+    Beispiel: id
+uptime                 - System-Betriebszeit und Last
+    Beispiel: uptime
+df -h                  - Festplattenspeicher-Nutzung (menschenlesbar)
+    Beispiel: df -h
+du -sh [directory]     - Verzeichnisgröße
+    Beispiel: du -sh /home/user/
+free -h                - Speicher-Nutzung
+    Beispiel: free -h
+lscpu                  - CPU-Informationen
+    Beispiel: lscpu
+lsblk                  - Block-Geräte auflisten
+    Beispiel: lsblk
+
+## Netzwerk
+ping [host]            - Netzwerkverbindung testen
+    Beispiel: ping google.com
+wget [URL]             - Datei von URL herunterladen
+    Beispiel: wget https://example.com/file.zip
+curl [URL]             - Daten von Server übertragen
+    Beispiel: curl -X GET https://api.example.com/users
+netstat -tuln          - Lauschende Ports anzeigen
+    Beispiel: netstat -tuln | grep :80
+ss -tuln               - Moderner Ersatz für netstat
+    Beispiel: ss -tuln | grep :443
+
+## Archive und Komprimierung
+tar -czf archive.tar.gz [files] - Komprimiertes tar-Archiv erstellen
+    Beispiel: tar -czf backup.tar.gz /home/user/documents/
+tar -xzf archive.tar.gz         - Komprimiertes tar-Archiv extrahieren
+    Beispiel: tar -xzf backup.tar.gz
+zip archive.zip [files]         - Zip-Archiv erstellen
+    Beispiel: zip -r project.zip /home/user/project/
+unzip archive.zip               - Zip-Archiv extrahieren
+    Beispiel: unzip project.zip
+
+## Text-Verarbeitung
+awk '{print $1}' [file] - Erste Spalte ausgeben
+    Beispiel: awk '{print $1}' /var/log/auth.log
+sed 's/old/new/g' [file] - Text in Datei ersetzen
+    Beispiel: sed 's/localhost/127.0.0.1/g' config.txt
+cut -d',' -f1 [file]    - Erstes Feld ausschneiden (Komma-getrennt)
+    Beispiel: cut -d',' -f1 users.csv
+
+## System-Steuerung
+systemctl status [service] - Service-Status prüfen
+    Beispiel: systemctl status apache2
+systemctl start [service]  - Service starten
+    Beispiel: systemctl start nginx
+systemctl stop [service]   - Service stoppen
+    Beispiel: systemctl stop mysql
+systemctl restart [service] - Service neu starten
+    Beispiel: systemctl restart ssh
+systemctl enable [service]  - Service beim Boot aktivieren
+    Beispiel: systemctl enable docker
+
+## Navigations-Tastenkürzel
+Ctrl+C                 - Aktuellen Befehl abbrechen
+    Beispiel: Strg+C während laufendem ping
+Ctrl+Z                 - Aktuellen Befehl anhalten
+    Beispiel: Strg+Z bei vim, dann bg für Hintergrund
+Ctrl+D                 - Shell beenden oder Eingabe beenden
+    Beispiel: Strg+D zum Ausloggen
+Ctrl+L                 - Bildschirm löschen
+    Beispiel: Strg+L für sauberen Terminal
+Tab                    - Auto-Vervollständigung
+    Beispiel: cd /ho[Tab] → cd /home/
+!!                     - Letzten Befehl wiederholen
+    Beispiel: sudo !!
+!n                     - Befehl Nummer n aus Historie ausführen
+    Beispiel: !42
+history                - Befehlshistorie anzeigen
+    Beispiel: history | grep git
+
+## Erweiterte Befehle
+alias ll='ls -la'      - Alias erstellen
+    Beispiel: alias ll='ls -la'
+which [command]        - Pfad zu Befehl finden
+    Beispiel: which python3
+whereis [command]      - Alle Pfade zu Befehl finden
+    Beispiel: whereis gcc
+locate [file]          - Datei schnell finden (nutzt Datenbank)
+    Beispiel: locate config.txt
+updatedb               - Locate-Datenbank aktualisieren
+    Beispiel: sudo updatedb
+ln -s [target] [link]  - Symbolischen Link erstellen
+    Beispiel: ln -s /opt/app/bin/myapp /usr/local/bin/myapp
+mount [device] [mountpoint] - Gerät einhängen
+    Beispiel: sudo mount /dev/sdb1 /mnt/usb
+umount [mountpoint]    - Gerät aushängen
+    Beispiel: sudo umount /mnt/usb
+crontab -e             - Cron-Jobs bearbeiten
+    Beispiel: crontab -e
+crontab -l             - Cron-Jobs auflisten
+    Beispiel: crontab -l

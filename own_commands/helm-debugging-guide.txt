@@ -1,0 +1,481 @@
+# Helm Debugging Guide
+
+## 🔍 Systematisches Helm Debugging
+
+### **Schritt 1: Helm-Umgebung prüfen**
+```bash
+# Helm-Version und Client-Status
+helm version
+helm list --all-namespaces
+kubectl config current-context
+```
+
+### **Schritt 2: Release-Status analysieren**
+```bash
+# Alle Releases anzeigen
+helm list -a
+# Zeigt: STATUS (deployed, failed, pending-install, pending-upgrade)
+
+# Spezifischen Release-Status
+helm status [release-name]
+# Beispiel: helm status my-webapp
+```
+
+## 🚨 Häufige Helm-Probleme und Lösungen
+
+### **Problem 1: Installation schlägt fehl**
+
+#### **Symptom:**
+```bash
+helm list
+# STATUS: failed oder pending-install
+```
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Release-Status detailliert anzeigen
+helm status [release-name]
+# Beispiel: helm status my-app
+
+# 2. Release-Historie anzeigen
+helm history [release-name]
+# Beispiel: helm history my-app
+
+# 3. Kubernetes-Ressourcen prüfen
+kubectl get all -l app.kubernetes.io/managed-by=Helm
+# Zeigt alle Helm-verwalteten Ressourcen
+
+# 4. Dry-Run der Installation
+helm install [release-name] [chart] --dry-run --debug
+# Beispiel: helm install my-app ./my-chart --dry-run --debug
+
+# 5. Template-Rendering testen
+helm template [release-name] [chart] --debug
+# Beispiel: helm template my-app ./my-chart --debug
+```
+
+### **Problem 2: Upgrade schlägt fehl**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Rollback-Historie anzeigen
+helm history [release-name]
+# Beispiel: helm history my-webapp
+
+# 2. Letzten erfolgreichen Zustand
+helm rollback [release-name] [revision]
+# Beispiel: helm rollback my-webapp 2
+
+# 3. Upgrade mit Debug-Informationen
+helm upgrade [release-name] [chart] --debug --dry-run
+# Beispiel: helm upgrade my-webapp ./chart --debug --dry-run
+
+# 4. Values-Unterschiede zwischen Versionen
+helm get values [release-name] --revision=[old-revision]
+helm get values [release-name] --revision=[new-revision]
+# Beispiel: helm get values my-app --revision=1
+
+# 5. Manifestunterschiede prüfen
+helm get manifest [release-name] --revision=[revision]
+# Beispiel: helm get manifest my-app --revision=2
+```
+
+### **Problem 3: Chart-Validierung schlägt fehl**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Chart-Struktur validieren
+helm lint [chart-path]
+# Beispiel: helm lint ./my-chart
+
+# 2. Template-Syntax prüfen
+helm template [release-name] [chart] --debug
+# Beispiel: helm template test-release ./my-chart --debug
+
+# 3. Values-Schema validieren (Helm 3+)
+helm show values [chart]
+# Beispiel: helm show values ./my-chart
+
+# 4. Chart-Dependencies überprüfen
+helm dependency list [chart-path]
+helm dependency update [chart-path]
+# Beispiel: helm dependency update ./my-chart
+
+# 5. Chart-Metadaten prüfen
+helm show chart [chart]
+# Beispiel: helm show chart ./my-chart
+```
+
+### **Problem 4: Release bleibt in pending-Status**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Helm-Operation-Status
+helm list --pending
+
+# 2. Kubernetes-Events prüfen
+kubectl get events --sort-by=.metadata.creationTimestamp
+
+# 3. Release-interne Hooks prüfen
+helm get hooks [release-name]
+# Beispiel: helm get hooks my-app
+
+# 4. Pod-Status der Release-Ressourcen
+kubectl get pods -l app.kubernetes.io/instance=[release-name]
+# Beispiel: kubectl get pods -l app.kubernetes.io/instance=my-app
+
+# 5. Timeout erhöhen bei nächstem Versuch
+helm install [release-name] [chart] --timeout=10m
+# Beispiel: helm install my-app ./chart --timeout=10m
+```
+
+### **Problem 5: Values werden nicht übernommen**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Aktuelle Values anzeigen
+helm get values [release-name]
+# Beispiel: helm get values my-webapp
+
+# 2. Default Values vs. Override Values
+helm show values [chart]
+# Zeigt Default-Values des Charts
+
+# 3. Template mit Debug-Values rendern
+helm template [release-name] [chart] --set key=value --debug
+# Beispiel: helm template my-app ./chart --set image.tag=v2.0 --debug
+
+# 4. Values-Datei-Pfad prüfen
+helm template [release-name] [chart] -f [values-file] --debug
+# Beispiel: helm template my-app ./chart -f custom-values.yaml --debug
+
+# 5. Values-Hierarchie verstehen
+# CLI --set > -f values-file > chart default values
+helm install [release-name] [chart] -f values.yaml --set image.tag=latest --debug
+```
+
+## 🔧 Erweiterte Helm-Debugging-Techniken
+
+### **Chart-Entwicklung debuggen**
+```bash
+# 1. Chart-Struktur prüfen
+helm create debug-chart
+tree debug-chart/
+# Vergleiche mit funktionierender Struktur
+
+# 2. Template-Funktionen testen
+helm template test-release ./chart --debug > rendered.yaml
+# Templates in Datei speichern und analysieren
+
+# 3. Conditional-Logic debuggen
+helm template test-release ./chart --set debug=true --debug
+# Debug-Flag in Templates nutzen
+
+# 4. Named Templates testen
+helm template test-release ./chart --debug | grep -A10 -B10 "template-name"
+# Spezifische Templates suchen
+
+# 5. Values-Interpolation prüfen
+helm template test-release ./chart --debug | grep "{{.*}}"
+# Nicht-gerenderte Templates finden
+```
+
+### **Dependencies debuggen**
+```bash
+# 1. Dependency-Status
+helm dependency list [chart-path]
+# Beispiel: helm dependency list ./my-chart
+
+# 2. Dependencies herunterladen
+helm dependency update [chart-path]
+# Beispiel: helm dependency update ./my-chart
+
+# 3. Subchart-Values testen
+helm template test-release ./chart --debug | grep -A20 "subchart-name"
+
+# 4. Charts/-Verzeichnis prüfen
+ls -la [chart-path]/charts/
+# Sind alle Dependencies vorhanden?
+
+# 5. Repository-Zugriff testen
+helm repo update
+helm search repo [dependency-name]
+# Beispiel: helm search repo postgresql
+```
+
+### **Hooks debuggen**
+```bash
+# 1. Alle Hooks eines Releases anzeigen
+helm get hooks [release-name]
+# Beispiel: helm get hooks my-webapp
+
+# 2. Hook-Jobs in Kubernetes
+kubectl get jobs -l app.kubernetes.io/managed-by=Helm
+kubectl logs job/[hook-job-name]
+
+# 3. Pre/Post-Install Hooks
+kubectl get pods -l app.kubernetes.io/managed-by=Helm
+kubectl describe pod [hook-pod-name]
+
+# 4. Hook-Reihenfolge debuggen
+helm get manifest [release-name] | grep -A5 -B5 "helm.sh/hook"
+
+# 5. Hook-Fehler bei Installation
+helm install [release-name] [chart] --debug --wait
+# --wait wartet auf Hook-Completion
+```
+
+## 📋 Helm Debugging Checkliste
+
+### **Bei jedem Problem zuerst:**
+```bash
+1. helm list -a                    # Release-Status
+2. helm status [release-name]      # Detaillierter Status
+3. helm history [release-name]     # Historie anzeigen
+4. kubectl get events             # Kubernetes-Events
+```
+
+### **Installation schlägt fehl:**
+```bash
+1. helm install [name] [chart] --dry-run --debug  # Template testen
+2. helm lint [chart-path]                         # Chart validieren
+3. kubectl get pods -l app.kubernetes.io/instance=[name] # Pod-Status
+4. helm template [name] [chart] --debug > debug.yaml    # Manifests speichern
+```
+
+### **Upgrade-Probleme:**
+```bash
+1. helm history [release-name]           # Rollback-Optionen
+2. helm get values [release-name]        # Aktuelle Values
+3. helm diff upgrade [release-name] [chart] # Changes anzeigen (Plugin)
+4. helm rollback [release-name] [revision] # Rollback als Fallback
+```
+
+### **Values werden nicht übernommen:**
+```bash
+1. helm get values [release-name]              # Aktuelle Values
+2. helm template [name] [chart] --debug        # Template-Rendering
+3. helm show values [chart]                    # Default Values
+4. helm template [name] [chart] -f [file] --debug # Mit Values-Datei
+```
+
+## 🎯 Praktische Helm-Debugging-Szenarien
+
+### **Szenario 1: Chart-Installation schlägt mit Template-Fehler fehl**
+```bash
+# Problem: Error executing template
+
+# Schritt 1: Template-Syntax prüfen
+helm template debug-release ./my-chart --debug
+# Schaue nach YAML-Syntax-Fehlern
+
+# Schritt 2: Chart validieren
+helm lint ./my-chart
+# Prüft Chart-Struktur und Templates
+
+# Schritt 3: Spezifische Values testen
+helm template debug-release ./my-chart --set image.tag=latest --debug
+# Teste mit problematischen Values
+
+# Schritt 4: Template-Ausgabe analysieren
+helm template debug-release ./my-chart --debug > debug-output.yaml
+cat debug-output.yaml | grep -A5 -B5 "error"
+
+# Schritt 5: Schrittweise Debugging
+# Kommentiere problematische Template-Teile aus
+# Teste Template für Template
+
+# Schritt 6: Values-Schema prüfen
+helm show values ./my-chart
+# Sind alle required Values gesetzt?
+```
+
+### **Szenario 2: Upgrade schlägt fehl und Release ist "broken"**
+```bash
+# Problem: Release STATUS zeigt "failed"
+
+# Schritt 1: Release-Historie
+helm history my-broken-app
+# Finde letzte funktionierende Revision
+
+# Schritt 2: Fehlgeschlagenen Upgrade analysieren
+helm status my-broken-app
+# Schaue nach spezifischen Fehlermeldungen
+
+# Schritt 3: Kubernetes-Ressourcen prüfen
+kubectl get all -l app.kubernetes.io/instance=my-broken-app
+kubectl get events | grep my-broken-app
+
+# Schritt 4: Rollback auf funktionierende Version
+helm rollback my-broken-app 2
+# Auf Revision 2 zurückrollen
+
+# Schritt 5: Upgrade-Problem identifizieren
+helm get values my-broken-app --revision=2  # Alte Values
+helm get values my-broken-app --revision=3  # Neue Values
+# Vergleiche Unterschiede
+
+# Schritt 6: Upgrade mit Debug erneut versuchen
+helm upgrade my-broken-app ./chart --debug --dry-run
+# Teste Upgrade ohne tatsächliche Anwendung
+```
+
+### **Szenario 3: Dependencies funktionieren nicht**
+```bash
+# Problem: Subchart wird nicht installiert
+
+# Schritt 1: Chart-Dependencies prüfen
+helm dependency list ./my-chart
+# STATUS sollte "ok" sein
+
+# Schritt 2: Dependencies aktualisieren
+helm dependency update ./my-chart
+# Lädt fehlende Dependencies herunter
+
+# Schritt 3: charts/-Verzeichnis prüfen
+ls -la ./my-chart/charts/
+# Sind .tgz-Dateien vorhanden?
+
+# Schritt 4: Subchart-Values testen
+helm template test-release ./my-chart --debug | grep -A20 postgresql
+# Beispiel für PostgreSQL-Subchart
+
+# Schritt 5: Repository-Zugriff
+helm repo update
+helm repo list
+# Sind alle Repositories erreichbar?
+
+# Schritt 6: Subchart individuell testen
+helm template test-subchart ./my-chart/charts/postgresql --debug
+```
+
+### **Szenario 4: Hooks schlagen fehl**
+```bash
+# Problem: Pre-install Hook schlägt fehl
+
+# Schritt 1: Hook-Status identifizieren
+helm status my-app
+# Schaue nach Hook-bezogenen Fehlern
+
+# Schritt 2: Hook-Jobs finden
+kubectl get jobs -l app.kubernetes.io/managed-by=Helm,app.kubernetes.io/instance=my-app
+
+# Schritt 3: Hook-Job-Logs
+kubectl logs job/my-app-pre-install-hook
+# Oder ähnlicher Job-Name
+
+# Schritt 4: Hook-Pod debuggen
+kubectl get pods -l job-name=my-app-pre-install-hook
+kubectl describe pod [hook-pod-name]
+
+# Schritt 5: Hook-Manifest analysieren
+helm get hooks my-app
+# Schaue nach Hook-Konfiguration
+
+# Schritt 6: Hook temporär deaktivieren
+# Kommentiere Hook-Annotation im Template aus:
+# annotations:
+#   "helm.sh/hook": pre-install
+helm upgrade my-app ./chart
+```
+
+### **Szenario 5: Values-Override funktioniert nicht**
+```bash
+# Problem: --set Values werden ignoriert
+
+# Schritt 1: Template mit Values rendern
+helm template test-release ./chart --set image.tag=v2.0 --debug
+grep "image:" debug-output.yaml
+
+# Schritt 2: Values-Pfad prüfen
+helm template test-release ./chart --set app.image.tag=v2.0 --debug
+# Unterschiedliche Verschachtelungsebenen testen
+
+# Schritt 3: Values-Datei vs. --set
+helm template test-release ./chart -f values.yaml --set image.tag=v2.0 --debug
+# --set hat höchste Priorität
+
+# Schritt 4: Aktuelle Values anzeigen
+helm get values my-app --all
+# Zeigt alle Values (default + override)
+
+# Schritt 5: Template-Logic überprüfen
+cat ./chart/templates/deployment.yaml | grep -A3 -B3 "image:"
+# Ist der Template korrekt geschrieben?
+
+# Schritt 6: Complex Values testen
+helm template test-release ./chart --set-string 'tags[0]=v1,tags[1]=v2' --debug
+```
+
+## 🚀 Profi-Tipps für Helm-Debugging
+
+### **Nützliche Helm-Plugins:**
+```bash
+# Helm diff Plugin
+helm plugin install https://github.com/databus23/helm-diff
+helm diff upgrade [release-name] [chart]
+
+# Helm secrets Plugin
+helm plugin install https://github.com/jkroepke/helm-secrets
+helm secrets view secret-values.yaml
+
+# Helm unittest Plugin
+helm plugin install https://github.com/quintush/helm-unittest
+helm unittest ./my-chart
+```
+
+### **Template-Debugging-Tricks:**
+```bash
+# Debug-Values in Templates
+{{- if .Values.debug }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: debug-values
+data:
+  values.yaml: |
+{{ toYaml .Values | indent 4 }}
+{{- end }}
+
+# Template-Funktionen testen
+helm template test-release ./chart --set debug=true --debug | grep -A10 debug-values
+```
+
+### **Values-Management:**
+```bash
+# Environment-spezifische Values
+helm install prod-app ./chart -f values.yaml -f values-prod.yaml
+
+# Values aus verschiedenen Quellen
+helm install my-app ./chart \
+  -f base-values.yaml \
+  -f env-values.yaml \
+  --set image.tag=v1.2.3 \
+  --set-string ingress.hosts[0]=app.example.com
+```
+
+### **Chart-Testing:**
+```bash
+# Unit Tests für Charts
+helm create test-chart
+# Erstelle tests/ Verzeichnis im Chart
+helm test [release-name]
+
+# Integration Testing
+helm install test-release ./chart --wait --timeout=300s
+helm test test-release
+helm uninstall test-release
+```
+
+## 💡 Helm Debugging Merksätze
+
+1. **Dry-run first** - `--dry-run --debug` vor jeder Installation
+2. **Template understanding** - `helm template` zeigt finales YAML
+3. **Values hierarchy** - CLI --set > -f file > default values
+4. **History is key** - `helm history` für Rollback-Optionen
+5. **Lint your charts** - `helm lint` findet viele Probleme
+6. **Dependencies matter** - `helm dependency update` nicht vergessen
+7. **Hooks can fail** - Hook-Jobs separat debuggen
+8. **Debug mode helps** - `--debug` Flag zeigt mehr Informationen
+
+**Helm-Debugging ist Template-Detective-Work - verstehe den Rendering-Prozess!** 🔍

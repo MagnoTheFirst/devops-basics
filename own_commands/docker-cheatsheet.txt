@@ -1,0 +1,305 @@
+# Docker Befehle Cheatsheet
+
+## Docker System-Informationen
+docker version              - Docker-Versionsinformationen anzeigen
+    Beispiel: docker version
+docker info                 - Systemweite Informationen anzeigen
+    Beispiel: docker info
+docker system df            - Festplattenverbrauch anzeigen
+    Beispiel: docker system df
+docker system prune         - Ungenutzte Daten entfernen (Container, Netzwerke, Images)
+    Beispiel: docker system prune
+docker system prune -a      - Alle ungenutzten Daten einschließlich ungenutzter Images entfernen
+    Beispiel: docker system prune -a
+
+## Image-Management
+docker images               - Alle lokalen Images auflisten
+    Beispiel: docker images
+docker images -a            - Alle Images einschließlich Zwischenergebnisse auflisten
+    Beispiel: docker images -a
+docker pull [image]         - Image aus Registry herunterladen
+    Beispiel: docker pull nginx:latest
+docker pull [image]:[tag]   - Bestimmte Version eines Images herunterladen
+    Beispiel: docker pull mysql:8.0
+docker build -t [name] .    - Image aus Dockerfile im aktuellen Verzeichnis erstellen
+    Beispiel: docker build -t myapp:v1.0 .
+docker build -t [name] [path] - Image aus Dockerfile im angegebenen Pfad erstellen
+    Beispiel: docker build -t webapp:latest ./frontend/
+docker build --no-cache -t [name] . - Image ohne Cache erstellen
+    Beispiel: docker build --no-cache -t myapp:v1.0 .
+docker rmi [image]          - Image entfernen
+    Beispiel: docker rmi nginx:latest
+docker rmi $(docker images -q) - Alle Images entfernen
+    Beispiel: docker rmi $(docker images -q)
+docker image prune          - Verwaiste Images entfernen
+    Beispiel: docker image prune
+docker image prune -a       - Alle ungenutzten Images entfernen
+    Beispiel: docker image prune -a
+docker tag [source] [target] - Image mit neuem Namen taggen
+    Beispiel: docker tag myapp:v1.0 registry.com/myapp:v1.0
+docker push [image]         - Image in Registry hochladen
+    Beispiel: docker push registry.com/myapp:v1.0
+docker history [image]      - Image-Historie anzeigen
+    Beispiel: docker history nginx:latest
+docker inspect [image]      - Detaillierte Image-Informationen anzeigen
+    Beispiel: docker inspect nginx:latest
+
+## Container-Lebenszyklus
+docker run [image]          - Container aus Image erstellen und starten
+    Beispiel: docker run hello-world
+docker run -d [image]       - Container im Hintergrund ausführen (detached)
+    Beispiel: docker run -d nginx:latest
+docker run -it [image]      - Container interaktiv mit Terminal ausführen
+    Beispiel: docker run -it ubuntu:20.04 /bin/bash
+docker run --name [name] [image] - Container mit benutzerdefiniertem Namen ausführen
+    Beispiel: docker run --name my-nginx nginx:latest
+docker run -p [host-port]:[container-port] [image] - Ports weiterleiten
+    Beispiel: docker run -p 8080:80 nginx:latest
+docker run -v [host-path]:[container-path] [image] - Volume einbinden
+    Beispiel: docker run -v /home/user/data:/data ubuntu:20.04
+docker run --rm [image]     - Container nach Beendigung entfernen
+    Beispiel: docker run --rm hello-world
+docker create [image]       - Container erstellen ohne zu starten
+    Beispiel: docker create --name my-container nginx:latest
+docker start [container]    - Gestoppten Container starten
+    Beispiel: docker start my-container
+docker stop [container]     - Laufenden Container stoppen
+    Beispiel: docker stop my-container
+docker restart [container]  - Container neu starten
+    Beispiel: docker restart my-container
+docker pause [container]    - Container-Prozesse pausieren
+    Beispiel: docker pause my-container
+docker unpause [container]  - Container-Prozesse fortsetzen
+    Beispiel: docker unpause my-container
+docker kill [container]     - Container zwangsweise stoppen
+    Beispiel: docker kill my-container
+docker rm [container]       - Gestoppten Container entfernen
+    Beispiel: docker rm my-container
+docker rm -f [container]    - Laufenden Container zwangsweise entfernen
+    Beispiel: docker rm -f my-container
+
+## Container-Informationen
+docker ps                   - Laufende Container auflisten
+    Beispiel: docker ps
+docker ps -a                - Alle Container auflisten (laufende und gestoppte)
+    Beispiel: docker ps -a
+docker ps -q                - Nur Container-IDs auflisten
+    Beispiel: docker ps -q
+docker logs [container]     - Container-Logs anzeigen
+    Beispiel: docker logs my-container
+docker logs -f [container]  - Container-Logs verfolgen
+    Beispiel: docker logs -f my-nginx
+docker logs --tail 50 [container] - Letzte 50 Log-Zeilen anzeigen
+    Beispiel: docker logs --tail 50 my-app
+docker inspect [container]  - Detaillierte Container-Informationen anzeigen
+    Beispiel: docker inspect my-container
+docker top [container]      - Laufende Prozesse im Container anzeigen
+    Beispiel: docker top my-nginx
+docker stats                - Live-Ressourcenverbrauchsstatistiken anzeigen
+    Beispiel: docker stats
+docker stats [container]    - Ressourcenverbrauch für bestimmten Container anzeigen
+    Beispiel: docker stats my-container
+docker port [container]     - Port-Weiterleitungen anzeigen
+    Beispiel: docker port my-nginx
+
+## Container-Interaktion
+docker exec -it [container] /bin/bash - Interaktive Bash im laufenden Container ausführen
+    Beispiel: docker exec -it my-nginx /bin/bash
+docker exec -it [container] /bin/sh   - Interaktive Shell im laufenden Container ausführen
+    Beispiel: docker exec -it my-alpine /bin/sh
+docker exec [container] [command]     - Befehl im laufenden Container ausführen
+    Beispiel: docker exec my-nginx ls -la /var/www/html
+docker cp [container]:[path] [host-path] - Datei vom Container zum Host kopieren
+    Beispiel: docker cp my-nginx:/var/log/nginx/access.log ./access.log
+docker cp [host-path] [container]:[path] - Datei vom Host zum Container kopieren
+    Beispiel: docker cp ./config.conf my-nginx:/etc/nginx/conf.d/
+docker attach [container]   - An Hauptprozess des laufenden Containers anhängen
+    Beispiel: docker attach my-container
+
+## Dockerfile-Befehle
+FROM [image]                - Basis-Image setzen
+    Beispiel: FROM ubuntu:20.04
+RUN [command]              - Befehl während Build ausführen
+    Beispiel: RUN apt-get update && apt-get install -y nginx
+COPY [src] [dest]          - Dateien vom Host zum Image kopieren
+    Beispiel: COPY ./app /var/www/html
+ADD [src] [dest]           - Dateien kopieren (unterstützt URLs und tar-Extraktion)
+    Beispiel: ADD https://example.com/file.tar.gz /tmp/
+WORKDIR [path]             - Arbeitsverzeichnis setzen
+    Beispiel: WORKDIR /var/www/html
+EXPOSE [port]              - Port-Nutzung dokumentieren
+    Beispiel: EXPOSE 80
+ENV [key] [value]          - Umgebungsvariable setzen
+    Beispiel: ENV NODE_ENV production
+ARG [key]=[value]          - Build-Argument definieren
+    Beispiel: ARG VERSION=1.0
+CMD ["executable","param"] - Standard-Befehl zum Ausführen
+    Beispiel: CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["executable"]  - Container-Executable konfigurieren
+    Beispiel: ENTRYPOINT ["docker-entrypoint.sh"]
+VOLUME [path]              - Mount-Point erstellen
+    Beispiel: VOLUME ["/data"]
+USER [user]                - Benutzer für nachfolgende Befehle setzen
+    Beispiel: USER www-data
+LABEL [key]=[value]        - Metadaten zum Image hinzufügen
+    Beispiel: LABEL version="1.0" maintainer="admin@example.com"
+
+## Docker Compose
+docker-compose up          - Services aus docker-compose.yml starten
+    Beispiel: docker-compose up
+docker-compose up -d       - Services im Hintergrund starten
+    Beispiel: docker-compose up -d
+docker-compose down        - Container stoppen und entfernen, Netzwerke entfernen
+    Beispiel: docker-compose down
+docker-compose build       - Images für Services erstellen
+    Beispiel: docker-compose build
+docker-compose pull        - Images für Services herunterladen
+    Beispiel: docker-compose pull
+docker-compose logs        - Logs für alle Services anzeigen
+    Beispiel: docker-compose logs
+docker-compose logs [service] - Logs für bestimmten Service anzeigen
+    Beispiel: docker-compose logs web
+docker-compose ps          - Laufende Services auflisten
+    Beispiel: docker-compose ps
+docker-compose exec [service] [command] - Befehl in Service-Container ausführen
+    Beispiel: docker-compose exec web /bin/bash
+docker-compose restart [service] - Service neu starten
+    Beispiel: docker-compose restart web
+docker-compose stop        - Services stoppen
+    Beispiel: docker-compose stop
+docker-compose start       - Gestoppte Services starten
+    Beispiel: docker-compose start
+
+## Netzwerke
+docker network ls          - Netzwerke auflisten
+    Beispiel: docker network ls
+docker network create [name] - Netzwerk erstellen
+    Beispiel: docker network create my-network
+docker network inspect [network] - Netzwerk-Details anzeigen
+    Beispiel: docker network inspect my-network
+docker network connect [network] [container] - Container mit Netzwerk verbinden
+    Beispiel: docker network connect my-network my-container
+docker network disconnect [network] [container] - Container von Netzwerk trennen
+    Beispiel: docker network disconnect my-network my-container
+docker network rm [network] - Netzwerk entfernen
+    Beispiel: docker network rm my-network
+docker network prune       - Ungenutzte Netzwerke entfernen
+    Beispiel: docker network prune
+docker run --network [network] [image] - Container in bestimmtem Netzwerk ausführen
+    Beispiel: docker run --network my-network nginx:latest
+
+## Volumes
+docker volume ls            - Volumes auflisten
+    Beispiel: docker volume ls
+docker volume create [name] - Benanntes Volume erstellen
+    Beispiel: docker volume create my-data
+docker volume inspect [volume] - Volume-Details anzeigen
+    Beispiel: docker volume inspect my-data
+docker volume rm [volume]   - Volume entfernen
+    Beispiel: docker volume rm my-data
+docker volume prune         - Ungenutzte Volumes entfernen
+    Beispiel: docker volume prune
+docker run -v [volume]:[path] [image] - Benanntes Volume verwenden
+    Beispiel: docker run -v my-data:/data nginx:latest
+docker run -v [host-path]:[container-path] [image] - Host-Verzeichnis einbinden
+    Beispiel: docker run -v /home/user/data:/data nginx:latest
+
+## Registry-Operationen
+docker login                - Bei Docker-Registry anmelden
+    Beispiel: docker login registry.company.com
+docker logout               - Von Docker-Registry abmelden
+    Beispiel: docker logout
+docker search [term]        - Docker Hub nach Images durchsuchen
+    Beispiel: docker search nginx
+docker pull [registry]/[image] - Von bestimmter Registry herunterladen
+    Beispiel: docker pull registry.company.com/myapp:latest
+docker push [registry]/[image] - In bestimmte Registry hochladen
+    Beispiel: docker push registry.company.com/myapp:latest
+docker tag [image] [registry]/[image] - Für Registry taggen
+    Beispiel: docker tag myapp:latest registry.company.com/myapp:latest
+
+## Container-Bereinigung
+docker container prune     - Gestoppte Container entfernen
+    Beispiel: docker container prune
+docker rm $(docker ps -aq) - Alle Container entfernen
+    Beispiel: docker rm $(docker ps -aq)
+docker stop $(docker ps -q) - Alle laufenden Container stoppen
+    Beispiel: docker stop $(docker ps -q)
+docker rmi $(docker images -q) - Alle Images entfernen
+    Beispiel: docker rmi $(docker images -q)
+
+## Ressourcen-Management
+docker run -m [memory] [image] - Speicher-Limit setzen
+    Beispiel: docker run -m 512m nginx:latest
+docker run --cpus=[number] [image] - CPU-Limit setzen
+    Beispiel: docker run --cpus=1.5 nginx:latest
+docker run --cpu-shares=[shares] [image] - CPU-Anteile setzen
+    Beispiel: docker run --cpu-shares=512 nginx:latest
+docker update --memory [memory] [container] - Container-Speicher-Limit aktualisieren
+    Beispiel: docker update --memory 1g my-container
+
+## Gesundheitsprüfungen
+docker run --health-cmd=[command] [image] - Gesundheitsprüfungs-Befehl setzen
+    Beispiel: docker run --health-cmd="curl -f http://localhost/ || exit 1" nginx:latest
+docker run --health-interval=[time] [image] - Gesundheitsprüfungs-Intervall setzen
+    Beispiel: docker run --health-interval=30s nginx:latest
+HEALTHCHECK --interval=30s --timeout=3s CMD [command] - Dockerfile-Gesundheitsprüfung
+    Beispiel: HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost/ || exit 1
+
+## Multi-Stage Builds
+FROM [image] AS [stage]     - Build-Stage definieren
+    Beispiel: FROM node:16 AS build-stage
+COPY --from=[stage] [src] [dest] - Aus vorheriger Stage kopieren
+    Beispiel: COPY --from=build-stage /app/dist /usr/share/nginx/html
+
+## Docker Context
+docker context ls           - Verfügbare Kontexte auflisten
+    Beispiel: docker context ls
+docker context use [context] - Zu anderem Kontext wechseln
+    Beispiel: docker context use remote-docker
+docker context create [name] - Neuen Kontext erstellen
+    Beispiel: docker context create my-remote --docker "host=ssh://user@remotehost"
+
+## Nützliche Run-Optionen
+-d                          - Im Hintergrund ausführen (detached)
+    Beispiel: docker run -d nginx:latest
+-it                         - Interaktiv mit TTY
+    Beispiel: docker run -it ubuntu:20.04 /bin/bash
+--name [name]              - Container-Namen zuweisen
+    Beispiel: docker run --name my-web nginx:latest
+-p [host]:[container]      - Port-Weiterleitung
+    Beispiel: docker run -p 8080:80 nginx:latest
+-v [host]:[container]      - Volume-Einbindung
+    Beispiel: docker run -v /data:/var/lib/mysql mysql:8.0
+-e [key]=[value]           - Umgebungsvariable setzen
+    Beispiel: docker run -e MYSQL_ROOT_PASSWORD=secret mysql:8.0
+--rm                       - Container nach Beendigung entfernen
+    Beispiel: docker run --rm hello-world
+--restart [policy]         - Neustart-Richtlinie (no, always, unless-stopped, on-failure)
+    Beispiel: docker run --restart always nginx:latest
+--network [network]        - Mit bestimmtem Netzwerk verbinden
+    Beispiel: docker run --network my-network nginx:latest
+--workdir [path]           - Arbeitsverzeichnis setzen
+    Beispiel: docker run --workdir /app node:16
+--user [user]              - Als bestimmten Benutzer ausführen
+    Beispiel: docker run --user 1000:1000 nginx:latest
+--privileged               - Erweiterte Rechte gewähren
+    Beispiel: docker run --privileged my-system-container
+--read-only                - Root-Dateisystem als schreibgeschützt einbinden
+    Beispiel: docker run --read-only nginx:latest
+
+## Troubleshooting
+docker logs [container]     - Container-Logs überprüfen
+    Beispiel: docker logs my-failing-container
+docker exec -it [container] /bin/bash - Im Container debuggen
+    Beispiel: docker exec -it my-app /bin/bash
+docker inspect [container] - Detaillierte Container-Informationen abrufen
+    Beispiel: docker inspect my-container
+docker port [container]    - Port-Weiterleitungen überprüfen
+    Beispiel: docker port my-web
+docker diff [container]    - Dateisystem-Änderungen anzeigen
+    Beispiel: docker diff my-container
+docker events              - Echtzeitevents vom Server abrufen
+    Beispiel: docker events
+docker system events       - Docker-Daemon-Events überwachen
+    Beispiel: docker system events

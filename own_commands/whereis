@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo '/home/magno/own_commands 			= Alle eigenen Befehle'
+echo ' 						= Alle dev projekte'

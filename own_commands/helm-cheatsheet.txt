@@ -1,0 +1,231 @@
+# Helm Befehle Cheatsheet
+
+## Installation und Setup
+helm version                 - Helm-Version anzeigen
+    Beispiel: helm version
+helm repo add [name] [url]   - Helm-Repository hinzufügen
+    Beispiel: helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update             - Repository-Informationen aktualisieren
+    Beispiel: helm repo update
+helm repo list              - Konfigurierte Repositories auflisten
+    Beispiel: helm repo list
+helm repo remove [name]     - Repository entfernen
+    Beispiel: helm repo remove bitnami
+helm search repo [keyword]  - Nach Charts in Repositories suchen
+    Beispiel: helm search repo nginx
+helm search hub [keyword]   - Helm Hub durchsuchen
+    Beispiel: helm search hub postgresql
+
+## Chart-Management
+helm create [chart-name]     - Neue Chart-Vorlage erstellen
+    Beispiel: helm create my-webapp
+helm package [chart-path]    - Chart in Archiv verpacken
+    Beispiel: helm package ./my-webapp
+helm lint [chart-path]       - Chart-Syntax und -Struktur überprüfen
+    Beispiel: helm lint ./my-webapp
+helm template [release] [chart] - Templates lokal rendern
+    Beispiel: helm template my-release ./my-webapp
+helm dependency update [chart] - Chart-Abhängigkeiten aktualisieren
+    Beispiel: helm dependency update ./my-webapp
+helm dependency build [chart]  - Chart-Abhängigkeiten erstellen
+    Beispiel: helm dependency build ./my-webapp
+
+## Release-Management
+helm install [release-name] [chart] - Chart als neues Release installieren
+    Beispiel: helm install nginx-release bitnami/nginx
+helm install [release-name] [chart] --namespace [ns] --create-namespace - In bestimmtem Namespace installieren
+    Beispiel: helm install my-app ./webapp --namespace production --create-namespace
+helm upgrade [release-name] [chart] - Bestehendes Release aktualisieren
+    Beispiel: helm upgrade nginx-release bitnami/nginx
+helm upgrade --install [release-name] [chart] - Release installieren oder aktualisieren
+    Beispiel: helm upgrade --install my-app ./webapp
+helm uninstall [release-name] - Release deinstallieren
+    Beispiel: helm uninstall nginx-release
+helm rollback [release-name] [revision] - Auf vorherige Revision zurückrollen
+    Beispiel: helm rollback nginx-release 1
+
+## Release-Informationen
+helm list                   - Alle Releases im aktuellen Namespace auflisten
+    Beispiel: helm list
+helm list -A                - Alle Releases in allen Namespaces auflisten
+    Beispiel: helm list -A
+helm list --all-namespaces  - Alle Releases in allen Namespaces auflisten
+    Beispiel: helm list --all-namespaces
+helm status [release-name]  - Release-Status anzeigen
+    Beispiel: helm status nginx-release
+helm history [release-name] - Release-Historie anzeigen
+    Beispiel: helm history nginx-release
+helm get values [release-name] - Für Release verwendete Werte abrufen
+    Beispiel: helm get values nginx-release
+helm get manifest [release-name] - Manifest des Releases abrufen
+    Beispiel: helm get manifest nginx-release
+helm get all [release-name] - Alle Informationen über Release abrufen
+    Beispiel: helm get all nginx-release
+
+## Werte-Management
+helm show values [chart]    - Standard-Werte für Chart anzeigen
+    Beispiel: helm show values bitnami/nginx
+helm install [release] [chart] --set [key=value] - Einzelne Werte setzen
+    Beispiel: helm install my-nginx bitnami/nginx --set service.type=LoadBalancer
+helm install [release] [chart] --values [file.yaml] - Werte aus Datei verwenden
+    Beispiel: helm install my-app ./webapp --values production-values.yaml
+helm install [release] [chart] -f [file.yaml] - Werte aus Datei verwenden (Kurzform)
+    Beispiel: helm install my-app ./webapp -f values.yaml
+helm upgrade [release] [chart] --reuse-values - Bestehende Werte bei Upgrade beibehalten
+    Beispiel: helm upgrade my-app ./webapp --reuse-values
+helm upgrade [release] [chart] --reset-values - Bei Upgrade auf Chart-Standards zurücksetzen
+    Beispiel: helm upgrade my-app ./webapp --reset-values
+
+## Chart-Informationen
+helm show chart [chart]     - Chart-Metadaten anzeigen
+    Beispiel: helm show chart bitnami/nginx
+helm show readme [chart]    - Chart-README anzeigen
+    Beispiel: helm show readme bitnami/mysql
+helm show all [chart]       - Alle Chart-Informationen anzeigen
+    Beispiel: helm show all bitnami/postgresql
+helm pull [chart]           - Chart in lokales Verzeichnis herunterladen
+    Beispiel: helm pull bitnami/nginx
+helm pull [chart] --untar   - Chart herunterladen und extrahieren
+    Beispiel: helm pull bitnami/nginx --untar
+
+## Testen und Debugging
+helm test [release-name]    - Tests für Release ausführen
+    Beispiel: helm test nginx-release
+helm install [release] [chart] --dry-run - Installation simulieren
+    Beispiel: helm install test-release ./webapp --dry-run
+helm upgrade [release] [chart] --dry-run - Upgrade simulieren
+    Beispiel: helm upgrade my-app ./webapp --dry-run
+helm template [release] [chart] --debug - Template mit Debug-Informationen anzeigen
+    Beispiel: helm template my-app ./webapp --debug
+helm install [release] [chart] --debug - Mit Debug-Ausgabe installieren
+    Beispiel: helm install my-app ./webapp --debug
+
+## Plugin-Management
+helm plugin list            - Installierte Plugins auflisten
+    Beispiel: helm plugin list
+helm plugin install [url]   - Plugin installieren
+    Beispiel: helm plugin install https://github.com/databus23/helm-diff
+helm plugin update [plugin] - Plugin aktualisieren
+    Beispiel: helm plugin update diff
+helm plugin uninstall [plugin] - Plugin deinstallieren
+    Beispiel: helm plugin uninstall diff
+
+## Repository-Management (Erweitert)
+helm repo index [directory] - Repository-Index generieren
+    Beispiel: helm repo index ./charts
+helm package [chart] --destination [dir] - Chart in bestimmtes Verzeichnis verpacken
+    Beispiel: helm package ./my-chart --destination ./packages
+helm serve                  - Lokalen Repository-Server starten (veraltet)
+    Beispiel: helm serve
+
+## Release-Hooks und Lebenszyklus
+helm install [release] [chart] --wait - Warten bis Ressourcen bereit sind
+    Beispiel: helm install my-app ./webapp --wait
+helm install [release] [chart] --timeout [duration] - Timeout für Operation setzen
+    Beispiel: helm install my-app ./webapp --timeout 10m
+helm install [release] [chart] --atomic - Bei Fehler zurückrollen
+    Beispiel: helm install my-app ./webapp --atomic
+helm upgrade [release] [chart] --force - Ressourcen-Update erzwingen
+    Beispiel: helm upgrade my-app ./webapp --force
+
+## Chart-Entwicklung
+helm create [chart-name]     - Neues Chart-Gerüst erstellen
+    Beispiel: helm create my-microservice
+_helpers.tpl                - Template-Hilfsdatei
+    Beispiel: Datei mit wiederverwendbaren Template-Funktionen
+Chart.yaml                  - Chart-Metadaten
+    Beispiel: name: my-app, version: 0.1.0, appVersion: 1.0.0
+values.yaml                 - Standard-Konfigurationswerte
+    Beispiel: image: nginx:1.20, service: type: ClusterIP
+templates/                  - Kubernetes-Manifest-Templates
+    Beispiel: deployment.yaml, service.yaml, ingress.yaml
+charts/                     - Chart-Abhängigkeiten
+    Beispiel: Unterverzeichnis mit abhängigen Charts
+
+## Häufige Muster
+# Mit benutzerdefinierten Werten installieren
+helm install myapp ./mychart --set image.tag=v2.0.0 --set replicas=3
+    Beispiel: helm install webapp ./my-chart --set image.tag=latest --set replicaCount=5
+
+# Aus Repository installieren
+helm install myapp stable/mysql --set mysqlRootPassword=secretpassword
+    Beispiel: helm install database bitnami/mysql --set auth.rootPassword=supersecret
+
+# Mit neuer Werte-Datei aktualisieren
+helm upgrade myapp ./mychart -f production-values.yaml
+    Beispiel: helm upgrade webapp ./my-chart -f prod-values.yaml
+
+# In bestimmtem Namespace installieren
+helm install myapp ./mychart -n production --create-namespace
+    Beispiel: helm install api ./backend-chart -n api-namespace --create-namespace
+
+# Dry Run zur Vorschau der Installation
+helm install myapp ./mychart --dry-run --debug
+    Beispiel: helm install webapp ./my-chart --dry-run --debug
+
+## Umgebungsspezifische Deployments
+# Entwicklung
+helm install myapp-dev ./mychart -f values-dev.yaml
+    Beispiel: helm install webapp-dev ./my-chart -f dev-values.yaml
+
+# Staging
+helm install myapp-staging ./mychart -f values-staging.yaml
+    Beispiel: helm install webapp-staging ./my-chart -f staging-values.yaml
+
+# Produktion
+helm install myapp-prod ./mychart -f values-prod.yaml
+    Beispiel: helm install webapp-prod ./my-chart -f prod-values.yaml
+
+## Nützliche Flags
+-n [namespace]              - Ziel-Namespace
+    Beispiel: helm list -n production
+--create-namespace          - Namespace erstellen falls nicht vorhanden
+    Beispiel: helm install app ./chart --create-namespace -n new-ns
+--dry-run                   - Operation simulieren
+    Beispiel: helm upgrade app ./chart --dry-run
+--debug                     - Ausführliche Ausgabe aktivieren
+    Beispiel: helm install app ./chart --debug
+--wait                      - Warten bis Ressourcen bereit sind
+    Beispiel: helm install app ./chart --wait
+--timeout [duration]        - Operations-Timeout setzen
+    Beispiel: helm install app ./chart --timeout 5m
+--atomic                    - Änderungen bei Fehler zurückrollen
+    Beispiel: helm install app ./chart --atomic
+--force                     - Ressourcen-Update erzwingen
+    Beispiel: helm upgrade app ./chart --force
+-f [file] oder --values [file] - Werte-Datei angeben
+    Beispiel: helm install app ./chart -f custom-values.yaml
+--set [key=value]          - Einzelne Werte setzen
+    Beispiel: helm install app ./chart --set image.tag=v2.0
+--version [version]         - Chart-Version angeben
+    Beispiel: helm install app bitnami/nginx --version 9.5.0
+--devel                     - Entwicklungsversionen einschließen
+    Beispiel: helm search repo nginx --devel
+
+## Troubleshooting-Befehle
+helm status [release]       - Release-Status prüfen
+    Beispiel: helm status my-failing-app
+helm history [release]      - Release-Historie anzeigen
+    Beispiel: helm history my-app
+helm get values [release]   - Aktuelle Werte anzeigen
+    Beispiel: helm get values my-app
+helm get manifest [release] - Aktuelles Manifest anzeigen
+    Beispiel: helm get manifest my-app
+kubectl get pods -l app.kubernetes.io/managed-by=Helm - Helm-verwaltete Pods abrufen
+    Beispiel: kubectl get pods -l app.kubernetes.io/managed-by=Helm
+kubectl describe pod [pod-name] - Pod-Probleme debuggen
+    Beispiel: kubectl describe pod my-app-deployment-xyz
+
+## Erweiterte Operationen
+helm template [release] [chart] --output-dir [dir] - Templates in Verzeichnis rendern
+    Beispiel: helm template my-app ./chart --output-dir ./rendered-templates
+helm install [release] [chart] --generate-name - Mit automatisch generiertem Namen installieren
+    Beispiel: helm install ./my-chart --generate-name
+helm upgrade [release] [chart] --install - Installieren falls nicht vorhanden, sonst upgraden
+    Beispiel: helm upgrade my-app ./chart --install
+helm rollback [release] - Auf vorherige Revision zurückrollen (neueste)
+    Beispiel: helm rollback my-app
+helm get hooks [release] - Release-Hooks anzeigen
+    Beispiel: helm get hooks my-app
+helm get notes [release] - Release-Notizen anzeigen
+    Beispiel: helm get notes my-app

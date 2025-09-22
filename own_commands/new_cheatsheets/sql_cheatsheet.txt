@@ -1,0 +1,101 @@
+# SQL Cheat-Sheet (PostgreSQL-orientiert, allgemein anwendbar)
+
+## Basis-Selects
+SELECT * FROM users;
+SELECT id, name FROM users WHERE active = true;
+SELECT * FROM orders WHERE created_at >= NOW() - INTERVAL '7 days';
+
+## Sortierung & Limit/Pagination
+SELECT * FROM products ORDER BY price DESC LIMIT 20 OFFSET 40;
+
+## Aggregation & Grouping
+SELECT status, COUNT(*) FROM tickets GROUP BY status;
+SELECT SUBSTRING_INDEX(email, '@', -1) AS domain, COUNT(*)
+FROM users GROUP BY domain;   -- in Postgres: split_part(email,'@',2)
+
+-- Postgres-Variante:
+SELECT split_part(email,'@',2) AS domain, COUNT(*)
+FROM users GROUP BY domain ORDER BY COUNT(*) DESC;
+
+## Joins
+SELECT o.id, u.name, o.total
+FROM orders o
+JOIN users u ON u.id = o.user_id
+WHERE o.status = 'PAID';
+
+## NULL-Handling
+SELECT COALESCE(phone, 'n/a') FROM customers;
+WHERE deleted_at IS NULL;
+
+## Upsert (Insert or Update)
+INSERT INTO inventory (sku, qty)
+VALUES ('A-1', 10)
+ON CONFLICT (sku) DO UPDATE SET qty = inventory.qty + EXCLUDED.qty;
+
+## Transaktionen
+BEGIN;
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+COMMIT;   -- oder ROLLBACK;
+
+## Isolation Level (Postgres)
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+-- Statements ...
+COMMIT;
+
+## Indizes (Performance)
+CREATE INDEX idx_users_active ON users (active);
+CREATE INDEX idx_orders_status_created ON orders (status, created_at DESC);
+
+-- Partieller Index (selektiv; sehr effizient bei seltenen Werten)
+CREATE INDEX idx_tickets_open ON tickets (created_at DESC) WHERE status = 'OPEN';
+
+-- Covering Index (Postgres INCLUDE)
+CREATE INDEX idx_orders_lookup ON orders (user_id, created_at DESC) INCLUDE (total);
+
+## Explain & Tuning
+EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM orders WHERE status='PAID' AND created_at >= NOW() - INTERVAL '30 days';
+-- Prüfen: verwendet der Planner den Index? Seq Scan vs. Index Scan?
+VACUUM (ANALYZE) orders;  -- Statistiken frisch halten
+
+## Locks & Blocker finden (Postgres)
+SELECT bl.pid AS blocked_pid, ka.query AS blocking_query
+FROM pg_locks bl
+JOIN pg_stat_activity ka ON ka.pid = bl.pid
+WHERE bl.granted = false;
+
+-- Blockenden Prozess beenden (vorsicht!)
+SELECT pg_terminate_backend(<pid>);
+
+## Partitionierung (Zeit-basiert, Postgres)
+CREATE TABLE events (
+  id bigserial PRIMARY KEY,
+  created_at timestamptz NOT NULL,
+  payload jsonb
+) PARTITION BY RANGE (created_at);
+
+-- Child-Partition Beispiel (monatlich)
+CREATE TABLE events_2025_08 PARTITION OF events
+FOR VALUES FROM ('2025-08-01') TO ('2025-09-01');
+
+## Fensterfunktionen (Analytics)
+SELECT user_id,
+       SUM(amount) OVER (PARTITION BY user_id ORDER BY created_at) AS running_total
+FROM payments;
+
+## CTE (Common Table Expressions)
+WITH recent AS (
+  SELECT * FROM orders WHERE created_at > NOW() - INTERVAL '7 days'
+)
+SELECT user_id, COUNT(*) FROM recent GROUP BY user_id;
+
+## Volltextsuche (Postgres)
+SELECT * FROM docs
+WHERE to_tsvector('simple', content) @@ to_tsquery('einfach & test');
+
+## Häufige Anti-Pattern & Fixes
+-- 1) LIKE ohne führenden Wildcard bevorzugen (Index-nutzbar)
+SELECT * FROM users WHERE email LIKE 'john%@gmail.com';  -- besser als '%john%'
+-- 2) Funktionen auf Spalten vermeiden, wenn Index genutzt werden soll
+-- 3) SELECT * vermeiden → nur benötigte Spalten (schlanker I/O)
+-- 4) Große DELETE/UPDATE in Batches + VACUUM

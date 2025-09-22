@@ -1,0 +1,327 @@
+# SQL Queries Cheatsheet
+
+## Grundlegende Datenbankoperationen
+
+### Datenbank erstellen und verwalten
+CREATE DATABASE [database_name] - Neue Datenbank erstellen
+    Beispiel: CREATE DATABASE company_db;
+USE [database_name] - Datenbank auswählen
+    Beispiel: USE company_db;
+DROP DATABASE [database_name] - Datenbank löschen
+    Beispiel: DROP DATABASE old_database;
+SHOW DATABASES - Alle Datenbanken anzeigen
+    Beispiel: SHOW DATABASES;
+
+### Tabellen erstellen und verwalten
+CREATE TABLE [table_name] ([column definitions]) - Tabelle erstellen
+    Beispiel: CREATE TABLE employees (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) UNIQUE,
+        salary DECIMAL(10,2),
+        hire_date DATE
+    );
+ALTER TABLE [table_name] ADD [column_name] [data_type] - Spalte hinzufügen
+    Beispiel: ALTER TABLE employees ADD phone VARCHAR(20);
+ALTER TABLE [table_name] DROP COLUMN [column_name] - Spalte entfernen
+    Beispiel: ALTER TABLE employees DROP COLUMN phone;
+ALTER TABLE [table_name] MODIFY [column_name] [new_data_type] - Spalte ändern
+    Beispiel: ALTER TABLE employees MODIFY salary DECIMAL(12,2);
+DROP TABLE [table_name] - Tabelle löschen
+    Beispiel: DROP TABLE old_employees;
+SHOW TABLES - Alle Tabellen anzeigen
+    Beispiel: SHOW TABLES;
+DESCRIBE [table_name] - Tabellenstruktur anzeigen
+    Beispiel: DESCRIBE employees;
+
+## Daten abfragen (SELECT)
+
+### Grundlegende SELECT-Anweisungen
+SELECT * FROM [table_name] - Alle Spalten und Zeilen auswählen
+    Beispiel: SELECT * FROM employees;
+SELECT [column1], [column2] FROM [table_name] - Bestimmte Spalten auswählen
+    Beispiel: SELECT name, salary FROM employees;
+SELECT DISTINCT [column_name] FROM [table_name] - Eindeutige Werte auswählen
+    Beispiel: SELECT DISTINCT department FROM employees;
+
+### WHERE-Klausel (Filterung)
+SELECT * FROM [table_name] WHERE [condition] - Mit Bedingung filtern
+    Beispiel: SELECT * FROM employees WHERE salary > 50000;
+SELECT * FROM [table_name] WHERE [column] = 'value' - Exakte Übereinstimmung
+    Beispiel: SELECT * FROM employees WHERE department = 'IT';
+SELECT * FROM [table_name] WHERE [column] LIKE 'pattern' - Muster-Matching
+    Beispiel: SELECT * FROM employees WHERE name LIKE 'John%';
+SELECT * FROM [table_name] WHERE [column] IN (value1, value2) - In Liste enthalten
+    Beispiel: SELECT * FROM employees WHERE department IN ('IT', 'HR', 'Finance');
+SELECT * FROM [table_name] WHERE [column] BETWEEN value1 AND value2 - Bereich
+    Beispiel: SELECT * FROM employees WHERE salary BETWEEN 40000 AND 80000;
+SELECT * FROM [table_name] WHERE [column] IS NULL - NULL-Werte finden
+    Beispiel: SELECT * FROM employees WHERE phone IS NULL;
+SELECT * FROM [table_name] WHERE [column] IS NOT NULL - Nicht-NULL-Werte
+    Beispiel: SELECT * FROM employees WHERE email IS NOT NULL;
+
+### Logische Operatoren
+SELECT * FROM [table_name] WHERE condition1 AND condition2 - UND-Verknüpfung
+    Beispiel: SELECT * FROM employees WHERE department = 'IT' AND salary > 60000;
+SELECT * FROM [table_name] WHERE condition1 OR condition2 - ODER-Verknüpfung
+    Beispiel: SELECT * FROM employees WHERE department = 'IT' OR department = 'HR';
+SELECT * FROM [table_name] WHERE NOT condition - NICHT-Verknüpfung
+    Beispiel: SELECT * FROM employees WHERE NOT department = 'IT';
+
+### Sortierung
+SELECT * FROM [table_name] ORDER BY [column] - Aufsteigend sortieren
+    Beispiel: SELECT * FROM employees ORDER BY salary;
+SELECT * FROM [table_name] ORDER BY [column] DESC - Absteigend sortieren
+    Beispiel: SELECT * FROM employees ORDER BY hire_date DESC;
+SELECT * FROM [table_name] ORDER BY [column1], [column2] - Mehrere Spalten
+    Beispiel: SELECT * FROM employees ORDER BY department, salary DESC;
+
+### Begrenzung der Ergebnisse
+SELECT * FROM [table_name] LIMIT [number] - Anzahl der Zeilen begrenzen
+    Beispiel: SELECT * FROM employees ORDER BY salary DESC LIMIT 10;
+SELECT * FROM [table_name] LIMIT [offset], [count] - Mit Offset
+    Beispiel: SELECT * FROM employees LIMIT 20, 10; -- Zeilen 21-30
+
+## Aggregat-Funktionen
+SELECT COUNT(*) FROM [table_name] - Anzahl der Zeilen zählen
+    Beispiel: SELECT COUNT(*) FROM employees;
+SELECT COUNT([column]) FROM [table_name] - Nicht-NULL-Werte zählen
+    Beispiel: SELECT COUNT(email) FROM employees;
+SELECT SUM([column]) FROM [table_name] - Summe berechnen
+    Beispiel: SELECT SUM(salary) FROM employees;
+SELECT AVG([column]) FROM [table_name] - Durchschnitt berechnen
+    Beispiel: SELECT AVG(salary) FROM employees;
+SELECT MIN([column]) FROM [table_name] - Minimum finden
+    Beispiel: SELECT MIN(hire_date) FROM employees;
+SELECT MAX([column]) FROM [table_name] - Maximum finden
+    Beispiel: SELECT MAX(salary) FROM employees;
+
+### GROUP BY und HAVING
+SELECT [column], COUNT(*) FROM [table_name] GROUP BY [column] - Gruppierung
+    Beispiel: SELECT department, COUNT(*) FROM employees GROUP BY department;
+SELECT [column], AVG([column2]) FROM [table_name] GROUP BY [column] - Gruppierter Durchschnitt
+    Beispiel: SELECT department, AVG(salary) FROM employees GROUP BY department;
+SELECT [column], COUNT(*) FROM [table_name] GROUP BY [column] HAVING COUNT(*) > value - Mit HAVING filtern
+    Beispiel: SELECT department, COUNT(*) FROM employees GROUP BY department HAVING COUNT(*) > 5;
+
+## Daten einfügen, aktualisieren, löschen
+
+### INSERT - Daten einfügen
+INSERT INTO [table_name] (column1, column2) VALUES (value1, value2) - Einzelne Zeile einfügen
+    Beispiel: INSERT INTO employees (name, email, salary, hire_date) 
+              VALUES ('John Doe', 'john@company.com', 65000, '2024-01-15');
+INSERT INTO [table_name] (column1, column2) VALUES (value1, value2), (value3, value4) - Mehrere Zeilen
+    Beispiel: INSERT INTO employees (name, salary) 
+              VALUES ('Alice Smith', 70000), ('Bob Johnson', 55000);
+INSERT INTO [table_name] SELECT * FROM [other_table] WHERE [condition] - Aus anderer Tabelle
+    Beispiel: INSERT INTO archived_employees SELECT * FROM employees WHERE hire_date < '2020-01-01';
+
+### UPDATE - Daten aktualisieren
+UPDATE [table_name] SET [column] = value WHERE [condition] - Einzelne Spalte aktualisieren
+    Beispiel: UPDATE employees SET salary = 75000 WHERE id = 1;
+UPDATE [table_name] SET column1 = value1, column2 = value2 WHERE [condition] - Mehrere Spalten
+    Beispiel: UPDATE employees SET salary = 80000, department = 'Senior IT' WHERE name = 'John Doe';
+UPDATE [table_name] SET [column] = [column] + value WHERE [condition] - Wert erhöhen
+    Beispiel: UPDATE employees SET salary = salary * 1.05 WHERE department = 'IT';
+
+### DELETE - Daten löschen
+DELETE FROM [table_name] WHERE [condition] - Bestimmte Zeilen löschen
+    Beispiel: DELETE FROM employees WHERE hire_date < '2020-01-01';
+DELETE FROM [table_name] - Alle Zeilen löschen (Struktur bleibt)
+    Beispiel: DELETE FROM temp_employees;
+TRUNCATE TABLE [table_name] - Alle Zeilen schnell löschen
+    Beispiel: TRUNCATE TABLE temp_data;
+
+## Joins - Tabellen verbinden
+
+### INNER JOIN
+SELECT * FROM table1 INNER JOIN table2 ON table1.id = table2.foreign_id - Innerer Join
+    Beispiel: SELECT e.name, d.department_name 
+              FROM employees e 
+              INNER JOIN departments d ON e.department_id = d.id;
+
+### LEFT JOIN
+SELECT * FROM table1 LEFT JOIN table2 ON table1.id = table2.foreign_id - Linker Join
+    Beispiel: SELECT e.name, d.department_name 
+              FROM employees e 
+              LEFT JOIN departments d ON e.department_id = d.id;
+
+### RIGHT JOIN
+SELECT * FROM table1 RIGHT JOIN table2 ON table1.id = table2.foreign_id - Rechter Join
+    Beispiel: SELECT e.name, d.department_name 
+              FROM employees e 
+              RIGHT JOIN departments d ON e.department_id = d.id;
+
+### FULL OUTER JOIN
+SELECT * FROM table1 FULL OUTER JOIN table2 ON table1.id = table2.foreign_id - Vollständiger äußerer Join
+    Beispiel: SELECT e.name, d.department_name 
+              FROM employees e 
+              FULL OUTER JOIN departments d ON e.department_id = d.id;
+
+## Unterabfragen (Subqueries)
+SELECT * FROM [table_name] WHERE [column] = (SELECT [column] FROM [other_table] WHERE [condition]) - Einzelwert-Unterabfrage
+    Beispiel: SELECT * FROM employees WHERE salary = (SELECT MAX(salary) FROM employees);
+SELECT * FROM [table_name] WHERE [column] IN (SELECT [column] FROM [other_table] WHERE [condition]) - Mehrwert-Unterabfrage
+    Beispiel: SELECT * FROM employees WHERE department_id IN (SELECT id FROM departments WHERE location = 'New York');
+SELECT * FROM [table_name] WHERE EXISTS (SELECT 1 FROM [other_table] WHERE [condition]) - EXISTS-Unterabfrage
+    Beispiel: SELECT * FROM employees e WHERE EXISTS (SELECT 1 FROM projects p WHERE p.employee_id = e.id);
+
+## Indizes und Performance
+CREATE INDEX [index_name] ON [table_name] ([column_name]) - Index erstellen
+    Beispiel: CREATE INDEX idx_employee_email ON employees (email);
+CREATE UNIQUE INDEX [index_name] ON [table_name] ([column_name]) - Eindeutigen Index erstellen
+    Beispiel: CREATE UNIQUE INDEX idx_employee_emp_id ON employees (employee_id);
+DROP INDEX [index_name] - Index löschen
+    Beispiel: DROP INDEX idx_employee_email;
+SHOW INDEX FROM [table_name] - Indizes einer Tabelle anzeigen
+    Beispiel: SHOW INDEX FROM employees;
+
+## Constraints (Einschränkungen)
+ALTER TABLE [table_name] ADD CONSTRAINT [constraint_name] PRIMARY KEY ([column_name]) - Primärschlüssel hinzufügen
+    Beispiel: ALTER TABLE employees ADD CONSTRAINT pk_employees PRIMARY KEY (id);
+ALTER TABLE [table_name] ADD CONSTRAINT [constraint_name] FOREIGN KEY ([column_name]) REFERENCES [other_table]([column_name]) - Fremdschlüssel hinzufügen
+    Beispiel: ALTER TABLE employees ADD CONSTRAINT fk_dept FOREIGN KEY (department_id) REFERENCES departments(id);
+ALTER TABLE [table_name] ADD CONSTRAINT [constraint_name] UNIQUE ([column_name]) - Eindeutigkeitseinschränkung
+    Beispiel: ALTER TABLE employees ADD CONSTRAINT uk_email UNIQUE (email);
+ALTER TABLE [table_name] ADD CONSTRAINT [constraint_name] CHECK ([condition]) - Check-Einschränkung
+    Beispiel: ALTER TABLE employees ADD CONSTRAINT chk_salary CHECK (salary > 0);
+
+## String-Funktionen
+SELECT CONCAT([string1], [string2]) FROM [table_name] - Strings verbinden
+    Beispiel: SELECT CONCAT(first_name, ' ', last_name) AS full_name FROM employees;
+SELECT UPPER([column_name]) FROM [table_name] - In Großbuchstaben umwandeln
+    Beispiel: SELECT UPPER(name) FROM employees;
+SELECT LOWER([column_name]) FROM [table_name] - In Kleinbuchstaben umwandeln
+    Beispiel: SELECT LOWER(email) FROM employees;
+SELECT LENGTH([column_name]) FROM [table_name] - Länge des Strings
+    Beispiel: SELECT name, LENGTH(name) FROM employees;
+SELECT SUBSTRING([column_name], [start], [length]) FROM [table_name] - Teilstring extrahieren
+    Beispiel: SELECT SUBSTRING(email, 1, LOCATE('@', email) - 1) AS username FROM employees;
+SELECT TRIM([column_name]) FROM [table_name] - Leerzeichen entfernen
+    Beispiel: SELECT TRIM(name) FROM employees;
+SELECT REPLACE([column_name], 'old_string', 'new_string') FROM [table_name] - Text ersetzen
+    Beispiel: SELECT REPLACE(phone, '-', '.') FROM employees;
+
+## Datum- und Zeit-Funktionen
+SELECT NOW() - Aktuelles Datum und Zeit
+    Beispiel: SELECT NOW();
+SELECT CURDATE() - Aktuelles Datum
+    Beispiel: SELECT CURDATE();
+SELECT CURTIME() - Aktuelle Zeit
+    Beispiel: SELECT CURTIME();
+SELECT DATE([datetime_column]) FROM [table_name] - Nur Datum extrahieren
+    Beispiel: SELECT DATE(hire_date) FROM employees;
+SELECT YEAR([date_column]) FROM [table_name] - Jahr extrahieren
+    Beispiel: SELECT YEAR(hire_date) FROM employees;
+SELECT MONTH([date_column]) FROM [table_name] - Monat extrahieren
+    Beispiel: SELECT MONTH(hire_date) FROM employees;
+SELECT DAY([date_column]) FROM [table_name] - Tag extrahieren
+    Beispiel: SELECT DAY(hire_date) FROM employees;
+SELECT DATEDIFF([date1], [date2]) FROM [table_name] - Differenz in Tagen
+    Beispiel: SELECT name, DATEDIFF(CURDATE(), hire_date) AS days_employed FROM employees;
+SELECT DATE_ADD([date], INTERVAL [value] [unit]) FROM [table_name] - Datum addieren
+    Beispiel: SELECT DATE_ADD(hire_date, INTERVAL 1 YEAR) AS anniversary FROM employees;
+
+## Mathematische Funktionen
+SELECT ROUND([number], [decimal_places]) FROM [table_name] - Runden
+    Beispiel: SELECT ROUND(salary/12, 2) AS monthly_salary FROM employees;
+SELECT CEIL([number]) FROM [table_name] - Aufrunden
+    Beispiel: SELECT CEIL(salary/1000) FROM employees;
+SELECT FLOOR([number]) FROM [table_name] - Abrunden
+    Beispiel: SELECT FLOOR(salary/1000) FROM employees;
+SELECT ABS([number]) FROM [table_name] - Absolutwert
+    Beispiel: SELECT ABS(budget_variance) FROM projects;
+
+## Bedingte Logik
+SELECT CASE WHEN [condition] THEN [value1] ELSE [value2] END FROM [table_name] - Einfache CASE-Anweisung
+    Beispiel: SELECT name, 
+              CASE WHEN salary > 70000 THEN 'High' 
+                   WHEN salary > 50000 THEN 'Medium' 
+                   ELSE 'Low' END AS salary_category 
+              FROM employees;
+SELECT IF([condition], [value_if_true], [value_if_false]) FROM [table_name] - IF-Funktion (MySQL)
+    Beispiel: SELECT name, IF(salary > 60000, 'Senior', 'Junior') AS level FROM employees;
+SELECT COALESCE([column1], [column2], 'default_value') FROM [table_name] - Ersten Nicht-NULL-Wert verwenden
+    Beispiel: SELECT name, COALESCE(phone, email, 'No contact') AS contact FROM employees;
+
+## Views (Sichten)
+CREATE VIEW [view_name] AS SELECT [query] - View erstellen
+    Beispiel: CREATE VIEW high_earners AS 
+              SELECT name, salary, department FROM employees WHERE salary > 70000;
+SELECT * FROM [view_name] - View abfragen
+    Beispiel: SELECT * FROM high_earners;
+DROP VIEW [view_name] - View löschen
+    Beispiel: DROP VIEW high_earners;
+
+## Transaktionen
+START TRANSACTION - Transaktion beginnen
+    Beispiel: START TRANSACTION;
+COMMIT - Transaktion bestätigen
+    Beispiel: UPDATE employees SET salary = salary * 1.1; COMMIT;
+ROLLBACK - Transaktion zurückrollen
+    Beispiel: DELETE FROM employees WHERE id = 999; ROLLBACK;
+
+## Window Functions (Erweiterte Funktionen)
+SELECT [column], ROW_NUMBER() OVER (ORDER BY [column]) FROM [table_name] - Zeilennummer
+    Beispiel: SELECT name, salary, ROW_NUMBER() OVER (ORDER BY salary DESC) AS rank FROM employees;
+SELECT [column], RANK() OVER (ORDER BY [column]) FROM [table_name] - Rang mit Lücken
+    Beispiel: SELECT name, salary, RANK() OVER (ORDER BY salary DESC) AS rank FROM employees;
+SELECT [column], DENSE_RANK() OVER (ORDER BY [column]) FROM [table_name] - Rang ohne Lücken
+    Beispiel: SELECT name, salary, DENSE_RANK() OVER (ORDER BY salary DESC) AS rank FROM employees;
+SELECT [column], LAG([column], 1) OVER (ORDER BY [column]) FROM [table_name] - Vorherigen Wert abrufen
+    Beispiel: SELECT name, salary, LAG(salary, 1) OVER (ORDER BY hire_date) AS prev_salary FROM employees;
+SELECT [column], LEAD([column], 1) OVER (ORDER BY [column]) FROM [table_name] - Nächsten Wert abrufen
+    Beispiel: SELECT name, salary, LEAD(salary, 1) OVER (ORDER BY hire_date) AS next_salary FROM employees;
+
+## Common Table Expressions (CTE)
+WITH [cte_name] AS (SELECT [query]) SELECT * FROM [cte_name] - Einfache CTE
+    Beispiel: WITH dept_avg AS (
+                SELECT department_id, AVG(salary) AS avg_salary 
+                FROM employees GROUP BY department_id
+              )
+              SELECT e.name, e.salary, d.avg_salary 
+              FROM employees e 
+              JOIN dept_avg d ON e.department_id = d.department_id;
+
+## Praktische Beispiele
+
+### Top N pro Gruppe finden
+SELECT * FROM (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) as rn
+    FROM employees
+) ranked WHERE rn <= 3; -- Top 3 Gehälter pro Abteilung
+    Beispiel: Findet die 3 bestbezahlten Mitarbeiter in jeder Abteilung
+
+### Duplikate finden
+SELECT [column], COUNT(*) FROM [table_name] GROUP BY [column] HAVING COUNT(*) > 1 - Duplikate finden
+    Beispiel: SELECT email, COUNT(*) FROM employees GROUP BY email HAVING COUNT(*) > 1;
+
+### Prozentuale Änderung berechnen
+SELECT name, old_salary, new_salary, 
+       ROUND(((new_salary - old_salary) / old_salary) * 100, 2) AS percent_change
+FROM salary_changes;
+    Beispiel: Berechnet prozentuale Gehaltsänderung
+
+### Laufende Summe
+SELECT date, amount, 
+       SUM(amount) OVER (ORDER BY date ROWS UNBOUNDED PRECEDING) AS running_total
+FROM transactions ORDER BY date;
+    Beispiel: Berechnet laufende Summe der Transaktionen
+
+### Median finden (MySQL)
+SELECT AVG(salary) AS median_salary
+FROM (
+    SELECT salary, ROW_NUMBER() OVER (ORDER BY salary) AS row_num,
+           COUNT(*) OVER () AS total_count
+    FROM employees
+) AS ranked
+WHERE row_num IN (FLOOR((total_count + 1) / 2), CEIL((total_count + 1) / 2));
+    Beispiel: Findet den Median-Gehalt aller Mitarbeiter
+
+## Performance-Optimierung
+EXPLAIN SELECT * FROM [table_name] WHERE [condition] - Ausführungsplan anzeigen
+    Beispiel: EXPLAIN SELECT * FROM employees WHERE department = 'IT';
+ANALYZE TABLE [table_name] - Tabellenstatistiken aktualisieren
+    Beispiel: ANALYZE TABLE employees;
+OPTIMIZE TABLE [table_name] - Tabelle optimieren
+    Beispiel: OPTIMIZE TABLE employees;

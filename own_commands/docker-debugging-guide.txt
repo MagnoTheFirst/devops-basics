@@ -1,0 +1,385 @@
+# Docker Debugging Guide
+
+## 🔍 Systematisches Docker Debugging
+
+### **Schritt 1: Problem identifizieren**
+```bash
+# Übersicht aller Container
+docker ps -a
+# Zeigt: STATUS (Exited, Running, Restarting)
+```
+
+### **Schritt 2: Container-Status analysieren**
+```bash
+# Detaillierte Container-Informationen
+docker inspect [container-name]
+# Beispiel: docker inspect nginx-web
+```
+
+## 🚨 Häufige Docker-Probleme und Lösungen
+
+### **Problem 1: Container startet nicht**
+
+#### **Symptom:**
+```bash
+docker ps -a
+# STATUS: Exited (1) oder Exited (125)
+```
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Logs anschauen
+docker logs [container-name]
+# Beispiel: docker logs my-app
+
+# 2. Letzten Exit-Code checken
+docker inspect [container-name] | grep ExitCode
+# Beispiel: docker inspect my-app | grep ExitCode
+
+# 3. Container interaktiv starten zum Testen
+docker run -it [image] /bin/bash
+# Beispiel: docker run -it ubuntu:20.04 /bin/bash
+```
+
+#### **Häufige Exit-Codes:**
+```
+Exit Code 0   = Normal beendet
+Exit Code 1   = Allgemeiner Fehler  
+Exit Code 125 = Docker-Daemon-Fehler
+Exit Code 126 = Container-Befehl nicht ausführbar
+Exit Code 127 = Container-Befehl nicht gefunden
+```
+
+### **Problem 2: Container läuft, aber Anwendung nicht erreichbar**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Port-Mapping überprüfen
+docker port [container-name]
+# Beispiel: docker port nginx-web
+
+# 2. Container-interne Ports checken
+docker exec [container-name] netstat -tuln
+# Beispiel: docker exec nginx-web netstat -tuln
+
+# 3. In Container einloggen und testen
+docker exec -it [container-name] /bin/bash
+# Dann im Container: curl localhost:80
+
+# 4. Von Host aus testen
+curl localhost:[mapped-port]
+# Beispiel: curl localhost:8080
+```
+
+### **Problem 3: Container crasht wiederholt**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Live-Logs verfolgen
+docker logs -f [container-name]
+# Beispiel: docker logs -f my-crashing-app
+
+# 2. Restart-Policy checken
+docker inspect [container-name] | grep -A5 RestartPolicy
+# Beispiel: docker inspect my-app | grep -A5 RestartPolicy
+
+# 3. Ressourcen-Limits überprüfen
+docker stats [container-name]
+# Beispiel: docker stats my-app
+
+# 4. Container ohne Restart-Policy starten
+docker run --restart=no [image]
+# Beispiel: docker run --restart=no nginx:latest
+```
+
+### **Problem 4: "No space left on device" Fehler**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Docker-Speicherverbrauch anzeigen
+docker system df
+# Zeigt: Images, Container, Volumes, Cache
+
+# 2. Ungenutzte Ressourcen finden
+docker system df -v
+# Detaillierte Aufschlüsselung
+
+# 3. Aufräumen
+docker system prune
+# Entfernt: Gestoppte Container, ungenutzte Netzwerke, Images, Cache
+
+# 4. Aggressives Aufräumen
+docker system prune -a
+# Entfernt auch ungenutzte Images
+```
+
+### **Problem 5: Container-Performance-Probleme**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Live-Ressourcenverbrauch
+docker stats
+# Zeigt: CPU%, Memory-Usage, Network I/O, Block I/O
+
+# 2. Prozesse im Container anzeigen
+docker top [container-name]
+# Beispiel: docker top nginx-web
+
+# 3. Container-interne Prozesse detailliert
+docker exec [container-name] ps aux
+# Beispiel: docker exec my-app ps aux
+
+# 4. Memory-Limits checken
+docker inspect [container-name] | grep -i memory
+# Beispiel: docker inspect my-app | grep -i memory
+```
+
+## 🔧 Erweiterte Debugging-Techniken
+
+### **Image-Probleme debuggen**
+```bash
+# 1. Image-Historie anzeigen
+docker history [image-name]
+# Beispiel: docker history nginx:latest
+
+# 2. Image-Layers untersuchen
+docker inspect [image-name]
+# Beispiel: docker inspect ubuntu:20.04
+
+# 3. Image lokal bauen und testen
+docker build -t test-image .
+docker run -it test-image /bin/bash
+```
+
+### **Netzwerk-Probleme debuggen**
+```bash
+# 1. Container-Netzwerke anzeigen
+docker network ls
+
+# 2. Netzwerk-Details
+docker network inspect [network-name]
+# Beispiel: docker network inspect bridge
+
+# 3. Container-IP herausfinden
+docker inspect [container-name] | grep IPAddress
+# Beispiel: docker inspect nginx-web | grep IPAddress
+
+# 4. Netzwerk-Konnektivität testen
+docker exec [container-name] ping [target]
+# Beispiel: docker exec web-app ping db-container
+
+# 5. DNS-Auflösung testen
+docker exec [container-name] nslookup [hostname]
+# Beispiel: docker exec web-app nslookup database
+```
+
+### **Volume-Probleme debuggen**
+```bash
+# 1. Volume-Übersicht
+docker volume ls
+
+# 2. Volume-Details
+docker volume inspect [volume-name]
+# Beispiel: docker volume inspect my-data-volume
+
+# 3. Container-Volume-Mappings checken
+docker inspect [container-name] | grep -A10 Mounts
+# Beispiel: docker inspect my-app | grep -A10 Mounts
+
+# 4. Volume-Inhalte überprüfen
+docker run --rm -v [volume-name]:/data ubuntu ls -la /data
+# Beispiel: docker run --rm -v my-data:/data ubuntu ls -la /data
+```
+
+## 📋 Docker Debugging Checkliste
+
+### **Bei jedem Problem zuerst:**
+```bash
+1. docker ps -a                 # Container-Status
+2. docker logs [container]      # Logs anschauen  
+3. docker inspect [container]   # Detaillierte Infos
+4. docker stats [container]     # Ressourcenverbrauch
+```
+
+### **Container startet nicht:**
+```bash
+1. docker logs [container]         # Error-Message
+2. docker run -it [image] /bin/bash # Interaktiv testen
+3. docker inspect [container] | grep ExitCode # Exit-Code
+4. docker events                   # System-Events
+```
+
+### **Container läuft, aber Anwendung nicht erreichbar:**
+```bash
+1. docker port [container]           # Port-Mapping
+2. docker exec [container] netstat -tuln # Interne Ports
+3. curl localhost:[port]             # Externe Erreichbarkeit
+4. docker exec -it [container] /bin/bash # Interne Überprüfung
+```
+
+### **Performance-Probleme:**
+```bash
+1. docker stats                    # Ressourcenverbrauch
+2. docker top [container]          # Prozesse
+3. docker inspect [container] | grep -i memory # Limits
+4. docker system df                # Speicherverbrauch
+```
+
+## 🎯 Praktische Debugging-Szenarien
+
+### **Szenario 1: Web-App antwortet nicht**
+```bash
+# Problem: Nginx-Container läuft, aber Website nicht erreichbar
+
+# Schritt 1: Container-Status
+docker ps
+# STATUS sollte "Up" sein
+
+# Schritt 2: Port-Mapping prüfen
+docker port nginx-web
+# Sollte zeigen: 80/tcp -> 0.0.0.0:8080
+
+# Schritt 3: Von außen testen
+curl -I localhost:8080
+# Erwarte: HTTP/1.1 200 OK
+
+# Schritt 4: Container-interne Überprüfung
+docker exec nginx-web curl localhost:80
+# Teste interne Erreichbarkeit
+
+# Schritt 5: Nginx-Logs checken
+docker logs nginx-web
+# Suche nach Error-Messages
+
+# Schritt 6: Nginx-Konfiguration prüfen
+docker exec nginx-web cat /etc/nginx/nginx.conf
+```
+
+### **Szenario 2: Database-Connection-Fehler**
+```bash
+# Problem: App kann nicht zu Datenbank verbinden
+
+# Schritt 1: Beide Container prüfen
+docker ps | grep -E "(app|db)"
+
+# Schritt 2: Netzwerk-Konnektivität testen
+docker exec app-container ping db-container
+# Sollte erfolgreich sein
+
+# Schritt 3: Port-Erreichbarkeit testen  
+docker exec app-container telnet db-container 5432
+# Für PostgreSQL (Port 5432)
+
+# Schritt 4: Database-Logs checken
+docker logs db-container
+
+# Schritt 5: Umgebungsvariablen prüfen
+docker exec app-container env | grep -i db
+# Database-Connection-Strings checken
+
+# Schritt 6: DNS-Auflösung testen
+docker exec app-container nslookup db-container
+```
+
+### **Szenario 3: Container crasht bei Start**
+```bash
+# Problem: Container startet und stirbt sofort
+
+# Schritt 1: Exit-Code finden
+docker ps -a
+# STATUS: Exited (1) 2 minutes ago
+
+# Schritt 2: Logs anschauen
+docker logs crashed-container
+# Letzte Error-Messages vor Crash
+
+# Schritt 3: Interaktiv debuggen
+docker run -it [same-image] /bin/bash
+# Container manuell starten und testen
+
+# Schritt 4: Befehl im Container testen
+docker run -it [image] [problematic-command]
+# Beispiel: docker run -it my-app python app.py
+
+# Schritt 5: Abhängigkeiten prüfen
+docker exec -it running-container which python
+docker exec -it running-container ls -la /app
+```
+
+## 🚀 Profi-Tipps
+
+### **Docker-Compose Debugging:**
+```bash
+# Services-Status
+docker-compose ps
+
+# Alle Service-Logs
+docker-compose logs
+
+# Spezifischen Service-Logs
+docker-compose logs [service-name]
+# Beispiel: docker-compose logs web
+
+# Service neu starten
+docker-compose restart [service-name]
+
+# In Service-Container einloggen
+docker-compose exec [service-name] /bin/bash
+# Beispiel: docker-compose exec web /bin/bash
+```
+
+### **Multi-Stage Build Debugging:**
+```bash
+# Bestimmten Stage bauen
+docker build --target [stage-name] -t debug-image .
+# Beispiel: docker build --target builder -t debug-image .
+
+# Stage interaktiv testen  
+docker run -it debug-image /bin/bash
+```
+
+### **Docker-Registry-Probleme:**
+```bash
+# Registry-Verbindung testen
+docker pull hello-world
+
+# Authentifizierung prüfen
+docker login [registry-url]
+
+# Push-Berechtigung testen
+docker tag hello-world [registry]/test
+docker push [registry]/test
+```
+
+## 📚 Weiterführende Debugging-Tools
+
+### **Docker-native Tools:**
+```bash
+docker events          # Real-time Events
+docker system events   # System-weite Events  
+docker info            # Docker-Daemon Info
+docker version         # Client/Server Versionen
+```
+
+### **Externe Tools:**
+```bash
+# ctop - Container-Top
+ctop
+
+# lazydocker - TUI für Docker
+lazydocker  
+
+# dive - Image-Layer-Analyse
+dive [image-name]
+```
+
+## 💡 Merksätze für schnelles Debugging
+
+1. **Logs first** - `docker logs` ist dein bester Freund
+2. **Status check** - `docker ps -a` zeigt alles
+3. **Interactive debug** - `docker exec -it [container] /bin/bash`
+4. **Network test** - `docker exec [container] ping [target]`
+5. **Resource check** - `docker stats` für Performance
+6. **Clean up** - `docker system prune` bei Speicherproblemen
+
+**Debugging ist systematisch - nicht magisch!** 🎯

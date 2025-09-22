@@ -1,0 +1,273 @@
+# Kubernetes Befehle Cheatsheet
+
+## Cluster Informationen
+kubectl cluster-info           - Cluster-Informationen anzeigen
+    Beispiel: kubectl cluster-info
+kubectl version               - Client- und Server-Versionen anzeigen
+    Beispiel: kubectl version --short
+kubectl config view           - Kubeconfig-Einstellungen anzeigen
+    Beispiel: kubectl config view
+kubectl config current-context - Aktuellen Kontext anzeigen
+    Beispiel: kubectl config current-context
+kubectl config use-context [context] - Kontext wechseln
+    Beispiel: kubectl config use-context production
+kubectl get nodes             - Alle Nodes im Cluster auflisten
+    Beispiel: kubectl get nodes
+kubectl describe node [node]  - Detaillierte Node-Informationen anzeigen
+    Beispiel: kubectl describe node worker-node-1
+
+## Pods
+kubectl get pods              - Pods im aktuellen Namespace auflisten
+    Beispiel: kubectl get pods
+kubectl get pods -A           - Pods in allen Namespaces auflisten
+    Beispiel: kubectl get pods -A
+kubectl get pods -o wide      - Pods mit zusätzlichen Informationen auflisten
+    Beispiel: kubectl get pods -o wide
+kubectl describe pod [pod]    - Detaillierte Pod-Informationen anzeigen
+    Beispiel: kubectl describe pod nginx-deployment-76d6c9b8c-xyz
+kubectl logs [pod]            - Pod-Logs anzeigen
+    Beispiel: kubectl logs nginx-deployment-76d6c9b8c-xyz
+kubectl logs -f [pod]         - Pod-Logs verfolgen
+    Beispiel: kubectl logs -f nginx-deployment-76d6c9b8c-xyz
+kubectl logs [pod] -c [container] - Logs für bestimmten Container anzeigen
+    Beispiel: kubectl logs nginx-pod -c nginx-container
+kubectl exec -it [pod] -- /bin/bash - Interaktive Shell im Pod ausführen
+    Beispiel: kubectl exec -it nginx-pod -- /bin/bash
+kubectl exec [pod] -- [command] - Befehl im Pod ausführen
+    Beispiel: kubectl exec nginx-pod -- ls -la
+kubectl exec [pod] -- curl [url] - Curl aus Pod heraus ausführen
+    Beispiel: kubectl exec nginx-pod -- curl http://google.com
+kubectl exec [pod] -- ping [target] - Ping aus Pod heraus ausführen
+    Beispiel: kubectl exec nginx-pod -- ping 8.8.8.8
+kubectl exec -it [pod] -- curl -v [url] - Curl mit ausführlicher Ausgabe aus Pod
+    Beispiel: kubectl exec -it nginx-pod -- curl -v http://api.service.local
+kubectl exec -it [pod] -- ping -c 4 [target] - Ping mit 4 Paketen aus Pod
+    Beispiel: kubectl exec -it nginx-pod -- ping -c 4 kubernetes.default.svc.cluster.local
+kubectl run nettools --image=nicolaka/netshoot -it --rm -- curl [url] - Curl mit Netshoot-Image ausführen
+    Beispiel: kubectl run nettools --image=nicolaka/netshoot -it --rm -- curl http://httpbin.org/ip
+kubectl run nettools --image=nicolaka/netshoot -it --rm -- ping [target] - Ping mit Netshoot-Image
+    Beispiel: kubectl run nettools --image=nicolaka/netshoot -it --rm -- ping google.com
+kubectl run debug --image=busybox -it --rm -- ping [target] - Ping mit Busybox-Image
+    Beispiel: kubectl run debug --image=busybox -it --rm -- ping 8.8.8.8
+kubectl run ubuntu --image=ubuntu -it --rm -- /bin/bash - Ubuntu-Container für Debugging
+    Beispiel: kubectl run ubuntu --image=ubuntu -it --rm -- /bin/bash
+kubectl port-forward [pod] [local-port]:[pod-port] - Lokalen Port an Pod weiterleiten
+    Beispiel: kubectl port-forward nginx-pod 8080:80
+kubectl delete pod [pod]      - Pod löschen
+    Beispiel: kubectl delete pod nginx-pod
+
+## Deployments
+kubectl get deployments      - Deployments auflisten
+    Beispiel: kubectl get deployments
+kubectl describe deployment [deployment] - Deployment-Details anzeigen
+    Beispiel: kubectl describe deployment nginx-deployment
+kubectl create deployment [name] --image=[image] - Deployment erstellen
+    Beispiel: kubectl create deployment nginx --image=nginx:1.20
+kubectl scale deployment [deployment] --replicas=[number] - Deployment skalieren
+    Beispiel: kubectl scale deployment nginx --replicas=5
+kubectl rollout status deployment/[deployment] - Rollout-Status prüfen
+    Beispiel: kubectl rollout status deployment/nginx
+kubectl rollout history deployment/[deployment] - Rollout-Historie anzeigen
+    Beispiel: kubectl rollout history deployment/nginx
+kubectl rollout undo deployment/[deployment] - Auf vorherige Version zurückrollen
+    Beispiel: kubectl rollout undo deployment/nginx
+kubectl delete deployment [deployment] - Deployment löschen
+    Beispiel: kubectl delete deployment nginx
+
+## Services
+kubectl get services          - Services auflisten
+    Beispiel: kubectl get services
+kubectl get svc              - Services auflisten (Kurzform)
+    Beispiel: kubectl get svc
+kubectl describe service [service] - Service-Details anzeigen
+    Beispiel: kubectl describe service nginx-service
+kubectl expose deployment [deployment] --port=[port] --type=LoadBalancer - Service erstellen
+    Beispiel: kubectl expose deployment nginx --port=80 --type=LoadBalancer
+kubectl delete service [service] - Service löschen
+    Beispiel: kubectl delete service nginx-service
+
+## ConfigMaps und Secrets
+kubectl get configmaps       - ConfigMaps auflisten
+    Beispiel: kubectl get configmaps
+kubectl get secrets          - Secrets auflisten
+    Beispiel: kubectl get secrets
+kubectl describe configmap [configmap] - ConfigMap-Details anzeigen
+    Beispiel: kubectl describe configmap app-config
+kubectl create configmap [name] --from-file=[file] - ConfigMap aus Datei erstellen
+    Beispiel: kubectl create configmap app-config --from-file=config.properties
+kubectl create secret generic [name] --from-literal=[key]=[value] - Secret erstellen
+    Beispiel: kubectl create secret generic db-password --from-literal=password=supersecret
+kubectl delete configmap [configmap] - ConfigMap löschen
+    Beispiel: kubectl delete configmap app-config
+kubectl delete secret [secret] - Secret löschen
+    Beispiel: kubectl delete secret db-password
+
+## Namespaces
+kubectl get namespaces       - Namespaces auflisten
+    Beispiel: kubectl get namespaces
+kubectl get ns              - Namespaces auflisten (Kurzform)
+    Beispiel: kubectl get ns
+kubectl create namespace [namespace] - Namespace erstellen
+    Beispiel: kubectl create namespace production
+kubectl config set-context --current --namespace=[namespace] - Standard-Namespace setzen
+    Beispiel: kubectl config set-context --current --namespace=production
+kubectl delete namespace [namespace] - Namespace löschen
+    Beispiel: kubectl delete namespace development
+
+## Ressourcen-Management
+kubectl get all             - Häufige Ressourcen auflisten
+    Beispiel: kubectl get all
+kubectl get all -A          - Alle Ressourcen in allen Namespaces auflisten
+    Beispiel: kubectl get all -A
+kubectl apply -f [file.yaml] - Konfiguration aus Datei anwenden
+    Beispiel: kubectl apply -f deployment.yaml
+kubectl delete -f [file.yaml] - In Datei definierte Ressourcen löschen
+    Beispiel: kubectl delete -f deployment.yaml
+kubectl replace -f [file.yaml] - Ressource mit Dateiinhalt ersetzen
+    Beispiel: kubectl replace -f updated-deployment.yaml
+kubectl patch [resource] [name] -p '[patch]' - Ressource patchen
+    Beispiel: kubectl patch deployment nginx -p '{"spec":{"replicas":3}}'
+
+## Persistent Volumes
+kubectl get pv              - Persistent Volumes auflisten
+    Beispiel: kubectl get pv
+kubectl get pvc             - Persistent Volume Claims auflisten
+    Beispiel: kubectl get pvc
+kubectl describe pv [pv]    - PV-Details anzeigen
+    Beispiel: kubectl describe pv pv-storage-001
+kubectl describe pvc [pvc]  - PVC-Details anzeigen
+    Beispiel: kubectl describe pvc data-claim
+
+## Jobs und CronJobs
+kubectl get jobs            - Jobs auflisten
+    Beispiel: kubectl get jobs
+kubectl get cronjobs        - Cron Jobs auflisten
+    Beispiel: kubectl get cronjobs
+kubectl describe job [job]  - Job-Details anzeigen
+    Beispiel: kubectl describe job backup-job
+kubectl delete job [job]    - Job löschen
+    Beispiel: kubectl delete job backup-job
+
+## Labels und Selektoren
+kubectl get pods -l [label=value] - Pods mit bestimmtem Label abrufen
+    Beispiel: kubectl get pods -l app=nginx
+kubectl label pod [pod] [key]=[value] - Label zu Pod hinzufügen
+    Beispiel: kubectl label pod nginx-pod environment=production
+kubectl label pod [pod] [key]- - Label von Pod entfernen
+    Beispiel: kubectl label pod nginx-pod environment-
+
+## Troubleshooting
+kubectl get events          - Cluster-Events anzeigen
+    Beispiel: kubectl get events
+kubectl get events --sort-by=.metadata.creationTimestamp - Events nach Zeit sortiert anzeigen
+    Beispiel: kubectl get events --sort-by=.metadata.creationTimestamp
+kubectl top nodes           - Node-Ressourcenverbrauch anzeigen
+    Beispiel: kubectl top nodes
+kubectl top pods            - Pod-Ressourcenverbrauch anzeigen
+    Beispiel: kubectl top pods
+kubectl describe [resource] [name] - Detaillierte Informationen über Ressource abrufen
+    Beispiel: kubectl describe pod nginx-pod
+kubectl exec [pod] -- nslookup [service] - DNS-Auflösungstest aus Pod
+    Beispiel: kubectl exec nginx-pod -- nslookup kubernetes.default.svc.cluster.local
+kubectl exec [pod] -- netstat -tuln - Netzwerkverbindungen in Pod anzeigen
+    Beispiel: kubectl exec nginx-pod -- netstat -tuln
+kubectl exec [pod] -- ps aux - Laufende Prozesse in Pod anzeigen
+    Beispiel: kubectl exec nginx-pod -- ps aux
+kubectl exec [pod] -- df -h - Festplattenverbrauch in Pod anzeigen
+    Beispiel: kubectl exec nginx-pod -- df -h
+kubectl exec [pod] -- cat /etc/resolv.conf - DNS-Konfiguration in Pod anzeigen
+    Beispiel: kubectl exec nginx-pod -- cat /etc/resolv.conf
+kubectl exec [pod] -- env - Umgebungsvariablen in Pod anzeigen
+    Beispiel: kubectl exec nginx-pod -- env
+kubectl run nettools --image=nicolaka/netshoot -it --rm -- nslookup [service] - DNS-Lookup mit Netshoot
+    Beispiel: kubectl run nettools --image=nicolaka/netshoot -it --rm -- nslookup google.com
+kubectl run nettools --image=nicolaka/netshoot -it --rm -- netstat -tuln - Netzwerkverbindungen mit Netshoot
+    Beispiel: kubectl run nettools --image=nicolaka/netshoot -it --rm -- netstat -tuln
+kubectl run nettools --image=nicolaka/netshoot -it --rm -- /bin/bash - Interaktiver Netshoot-Container
+    Beispiel: kubectl run nettools --image=nicolaka/netshoot -it --rm -- /bin/bash
+kubectl run alpine --image=alpine -it --rm -- /bin/sh - Interaktiver Alpine-Container
+    Beispiel: kubectl run alpine --image=alpine -it --rm -- /bin/sh
+
+## YAML-Generierung und Dry Run
+kubectl create deployment [name] --image=[image] --dry-run=client -o yaml - Deployment-YAML generieren
+    Beispiel: kubectl create deployment nginx --image=nginx:1.20 --dry-run=client -o yaml
+kubectl get [resource] [name] -o yaml - Ressourcen-YAML abrufen
+    Beispiel: kubectl get deployment nginx -o yaml
+kubectl explain [resource]  - Ressourcen-Dokumentation anzeigen
+    Beispiel: kubectl explain pod.spec.containers
+kubectl api-resources       - Verfügbare API-Ressourcen auflisten
+    Beispiel: kubectl api-resources
+
+## Kontext und Konfiguration
+kubectl config get-contexts - Verfügbare Kontexte auflisten
+    Beispiel: kubectl config get-contexts
+kubectl config delete-context [context] - Kontext löschen
+    Beispiel: kubectl config delete-context old-cluster
+kubectl config set-cluster [cluster] --server=[server] - Cluster zur Konfiguration hinzufügen
+    Beispiel: kubectl config set-cluster prod-cluster --server=https://k8s-api.example.com
+kubectl config set-credentials [user] --token=[token] - Benutzer zur Konfiguration hinzufügen
+    Beispiel: kubectl config set-credentials admin --token=abc123xyz
+
+## Erweiterte Operationen
+kubectl cordon [node]       - Node als nicht planbar markieren
+    Beispiel: kubectl cordon worker-node-1
+kubectl uncordon [node]     - Node als planbar markieren
+    Beispiel: kubectl uncordon worker-node-1
+kubectl drain [node]        - Node für Wartung entleeren
+    Beispiel: kubectl drain worker-node-1 --ignore-daemonsets
+kubectl taint nodes [node] [key]=[value]:[effect] - Taint zu Node hinzufügen
+    Beispiel: kubectl taint nodes worker-node-1 key=value:NoSchedule
+kubectl annotate [resource] [name] [key]=[value] - Annotation hinzufügen
+    Beispiel: kubectl annotate pod nginx-pod description="Production nginx server"
+
+## Docker Integration Befehle
+docker build -t [image] .   - Docker-Image aus Dockerfile erstellen
+    Beispiel: docker build -t myapp:v1.0 .
+docker push [image]         - Image in Registry hochladen
+    Beispiel: docker push myregistry.com/myapp:v1.0
+docker pull [image]         - Image aus Registry herunterladen
+    Beispiel: docker pull nginx:1.20
+docker exec -it [container] /bin/bash - Shell in Docker-Container ausführen
+    Beispiel: docker exec -it nginx-container /bin/bash
+docker logs [container]     - Docker-Container-Logs anzeigen
+    Beispiel: docker logs nginx-container
+docker inspect [container]  - Docker-Container-Details anzeigen
+    Beispiel: docker inspect nginx-container
+docker cp [container]:[path] [local-path] - Dateien aus Docker-Container kopieren
+    Beispiel: docker cp nginx-container:/var/log/nginx/access.log ./access.log
+
+## Helm Integration Befehle
+helm install [release] [chart] - Helm-Chart installieren
+    Beispiel: helm install nginx-release stable/nginx
+helm upgrade [release] [chart] - Helm-Release aktualisieren
+    Beispiel: helm upgrade nginx-release stable/nginx
+helm uninstall [release]    - Helm-Release deinstallieren
+    Beispiel: helm uninstall nginx-release
+helm list                   - Helm-Releases auflisten
+    Beispiel: helm list
+helm status [release]       - Helm-Release-Status anzeigen
+    Beispiel: helm status nginx-release
+helm rollback [release] [revision] - Helm-Release zurückrollen
+    Beispiel: helm rollback nginx-release 1
+helm template [release] [chart] - Helm-Templates lokal rendern
+    Beispiel: helm template nginx-release stable/nginx
+
+## Nützliche Flags
+-n [namespace]              - Namespace angeben
+    Beispiel: kubectl get pods -n production
+--all-namespaces oder -A      - Alle Namespaces
+    Beispiel: kubectl get pods -A
+-o wide                     - Zusätzliche Informationen
+    Beispiel: kubectl get pods -o wide
+-o yaml                     - YAML-Ausgabe
+    Beispiel: kubectl get pod nginx-pod -o yaml
+-o json                     - JSON-Ausgabe
+    Beispiel: kubectl get pod nginx-pod -o json
+--dry-run=client           - Zeigen was getan würde ohne Ausführung
+    Beispiel: kubectl create deployment nginx --image=nginx --dry-run=client
+-f [file]                  - Datei für Konfiguration verwenden
+    Beispiel: kubectl apply -f deployment.yaml
+--watch oder -w              - Auf Änderungen achten
+    Beispiel: kubectl get pods --watch
+--selector oder -l           - Nach Labels filtern
+    Beispiel: kubectl get pods -l app=nginx

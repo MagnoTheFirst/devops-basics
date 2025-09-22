@@ -1,0 +1,343 @@
+# Git Befehle Cheatsheet
+
+## Repository Setup und Konfiguration
+
+### Neues Repository erstellen
+git init - Neues Git-Repository initialisieren
+    Beispiel: git init
+git init [project-name] - Repository mit spezifischem Namen erstellen
+    Beispiel: git init my-webapp
+git clone [url] - Repository klonen
+    Beispiel: git clone https://github.com/user/repo.git
+git clone [url] [directory] - In spezifisches Verzeichnis klonen
+    Beispiel: git clone https://github.com/user/repo.git my-project
+
+### Git Konfiguration
+git config --global user.name "Name" - Globalen Benutzernamen setzen
+    Beispiel: git config --global user.name "Max Mustermann"
+git config --global user.email "email@example.com" - Globale E-Mail setzen
+    Beispiel: git config --global user.email "max@example.com"
+git config --list - Alle Konfigurationen anzeigen
+    Beispiel: git config --list
+git config user.name - Aktuellen Benutzernamen anzeigen
+    Beispiel: git config user.name
+git config --local user.email "email@company.com" - Lokale Konfiguration für Projekt
+    Beispiel: git config --local user.email "max@company.com"
+
+## Grundlegende Befehle
+
+### Status und Informationen
+git status - Aktuellen Status des Working Directory anzeigen
+    Beispiel: git status
+git status -s - Kurze Statusübersicht
+    Beispiel: git status -s
+git log - Commit-Historie anzeigen
+    Beispiel: git log
+git log --oneline - Kompakte Log-Ansicht
+    Beispiel: git log --oneline
+git log --graph --decorate --all - Grafische Darstellung aller Branches
+    Beispiel: git log --graph --decorate --all
+git show [commit] - Details eines bestimmten Commits anzeigen
+    Beispiel: git show HEAD
+git diff - Unterschiede im Working Directory anzeigen
+    Beispiel: git diff
+git diff --staged - Unterschiede in der Staging Area anzeigen
+    Beispiel: git diff --staged
+git diff [branch1] [branch2] - Unterschiede zwischen Branches
+    Beispiel: git diff main feature-branch
+
+### Dateien hinzufügen und committen
+git add [file] - Datei zur Staging Area hinzufügen
+    Beispiel: git add index.html
+git add . - Alle Änderungen zur Staging Area hinzufügen
+    Beispiel: git add .
+git add -A - Alle Dateien (auch gelöschte) hinzufügen
+    Beispiel: git add -A
+git add -p - Interaktives Hinzufügen (patch mode)
+    Beispiel: git add -p
+git commit -m "message" - Commit mit Nachricht erstellen
+    Beispiel: git commit -m "Add login functionality"
+git commit -am "message" - Alle geänderten Dateien committen (ohne git add)
+    Beispiel: git commit -am "Fix authentication bug"
+git commit --amend - Letzten Commit ändern
+    Beispiel: git commit --amend -m "Updated commit message"
+git commit --amend --no-edit - Dateien zum letzten Commit hinzufügen ohne Message zu ändern
+    Beispiel: git add forgotten-file.txt && git commit --amend --no-edit
+
+### Dateien entfernen und verschieben
+git rm [file] - Datei löschen und aus Git entfernen
+    Beispiel: git rm old-file.txt
+git rm --cached [file] - Datei aus Git entfernen aber lokal behalten
+    Beispiel: git rm --cached secrets.txt
+git mv [old-name] [new-name] - Datei umbenennen/verschieben
+    Beispiel: git mv README.txt README.md
+
+## Branch Management
+
+### Branches erstellen und wechseln
+git branch - Alle lokalen Branches anzeigen
+    Beispiel: git branch
+git branch -a - Alle Branches (lokal und remote) anzeigen
+    Beispiel: git branch -a
+git branch [branch-name] - Neuen Branch erstellen
+    Beispiel: git branch feature-login
+git checkout [branch-name] - Zu Branch wechseln
+    Beispiel: git checkout feature-login
+git checkout -b [branch-name] - Branch erstellen und sofort wechseln
+    Beispiel: git checkout -b feature-payment
+git switch [branch-name] - Zu Branch wechseln (moderne Alternative)
+    Beispiel: git switch main
+git switch -c [branch-name] - Branch erstellen und wechseln (moderne Alternative)
+    Beispiel: git switch -c hotfix-urgent
+
+### Branches zusammenführen und löschen
+git merge [branch-name] - Branch in aktuellen Branch mergen
+    Beispiel: git merge feature-login
+git merge --no-ff [branch-name] - Merge ohne Fast-Forward
+    Beispiel: git merge --no-ff feature-payment
+git branch -d [branch-name] - Branch löschen (safe delete)
+    Beispiel: git branch -d feature-login
+git branch -D [branch-name] - Branch zwangsweise löschen
+    Beispiel: git branch -D broken-feature
+git branch -m [old-name] [new-name] - Branch umbenennen
+    Beispiel: git branch -m feature-old feature-new
+
+## Remote Repositories
+
+### Remote Repositories verwalten
+git remote - Remote Repositories anzeigen
+    Beispiel: git remote
+git remote -v - Remote URLs anzeigen
+    Beispiel: git remote -v
+git remote add [name] [url] - Remote Repository hinzufügen
+    Beispiel: git remote add origin https://github.com/user/repo.git
+git remote remove [name] - Remote Repository entfernen
+    Beispiel: git remote remove origin
+git remote rename [old-name] [new-name] - Remote umbenennen
+    Beispiel: git remote rename origin upstream
+
+### Push und Pull
+git push - Änderungen zum Remote Repository senden
+    Beispiel: git push
+git push [remote] [branch] - Zu spezifischem Remote und Branch pushen
+    Beispiel: git push origin main
+git push -u [remote] [branch] - Push mit Upstream-Tracking setzen
+    Beispiel: git push -u origin feature-branch
+git push --force - Zwangsweise pushen (Vorsicht!)
+    Beispiel: git push --force
+git push --force-with-lease - Sicherere Alternative zu --force
+    Beispiel: git push --force-with-lease
+git pull - Änderungen vom Remote Repository holen und mergen
+    Beispiel: git pull
+git pull [remote] [branch] - Von spezifischem Remote und Branch pullen
+    Beispiel: git pull origin main
+git fetch - Änderungen vom Remote holen ohne zu mergen
+    Beispiel: git fetch
+git fetch [remote] - Von spezifischem Remote fetchen
+    Beispiel: git fetch origin
+
+## Stashing (Zwischenspeichern)
+git stash - Aktuelle Änderungen zwischenspeichern
+    Beispiel: git stash
+git stash save "message" - Stash mit Nachricht erstellen
+    Beispiel: git stash save "Work in progress on login feature"
+git stash list - Alle Stashes anzeigen
+    Beispiel: git stash list
+git stash pop - Neuesten Stash anwenden und löschen
+    Beispiel: git stash pop
+git stash apply - Neuesten Stash anwenden ohne zu löschen
+    Beispiel: git stash apply
+git stash apply stash@{n} - Spezifischen Stash anwenden
+    Beispiel: git stash apply stash@{2}
+git stash drop - Neuesten Stash löschen
+    Beispiel: git stash drop
+git stash drop stash@{n} - Spezifischen Stash löschen
+    Beispiel: git stash drop stash@{1}
+git stash clear - Alle Stashes löschen
+    Beispiel: git stash clear
+
+## History und Rückgängigmachen
+
+### Commits rückgängig machen
+git reset [file] - Datei aus Staging Area entfernen
+    Beispiel: git reset README.md
+git reset - Alle Dateien aus Staging Area entfernen
+    Beispiel: git reset
+git reset --soft HEAD~1 - Letzten Commit rückgängig machen (Dateien bleiben staged)
+    Beispiel: git reset --soft HEAD~1
+git reset --mixed HEAD~1 - Letzten Commit rückgängig machen (Dateien unstaged)
+    Beispiel: git reset --mixed HEAD~1
+git reset --hard HEAD~1 - Letzten Commit komplett rückgängig machen (Dateien gelöscht)
+    Beispiel: git reset --hard HEAD~1
+git revert [commit] - Commit durch neuen Commit rückgängig machen
+    Beispiel: git revert HEAD
+git revert [commit-hash] - Spezifischen Commit rückgängig machen
+    Beispiel: git revert a1b2c3d4
+
+### Checkout für einzelne Dateien
+git checkout -- [file] - Datei auf letzten Commit-Stand zurücksetzen
+    Beispiel: git checkout -- index.html
+git checkout [commit] -- [file] - Datei auf bestimmten Commit-Stand setzen
+    Beispiel: git checkout HEAD~2 -- config.js
+
+## Rebase und Cherry-Pick
+
+### Rebase
+git rebase [branch] - Aktuellen Branch auf anderen Branch rebasen
+    Beispiel: git rebase main
+git rebase -i HEAD~n - Interaktives Rebase der letzten n Commits
+    Beispiel: git rebase -i HEAD~3
+git rebase --continue - Rebase nach Konfliktlösung fortsetzen
+    Beispiel: git rebase --continue
+git rebase --abort - Rebase abbrechen
+    Beispiel: git rebase --abort
+git rebase --skip - Aktuellen Commit beim Rebase überspringen
+    Beispiel: git rebase --skip
+
+### Cherry-Pick
+git cherry-pick [commit] - Spezifischen Commit in aktuellen Branch übernehmen
+    Beispiel: git cherry-pick a1b2c3d4
+git cherry-pick [commit1] [commit2] - Mehrere Commits übernehmen
+    Beispiel: git cherry-pick a1b2c3d4 e5f6g7h8
+git cherry-pick --no-commit [commit] - Cherry-pick ohne automatischen Commit
+    Beispiel: git cherry-pick --no-commit a1b2c3d4
+
+## Tags
+
+### Tags erstellen und verwalten
+git tag - Alle Tags anzeigen
+    Beispiel: git tag
+git tag [tag-name] - Leichten Tag erstellen
+    Beispiel: git tag v1.0
+git tag -a [tag-name] -m "message" - Annotierten Tag erstellen
+    Beispiel: git tag -a v1.0 -m "Release version 1.0"
+git tag -a [tag-name] [commit] - Tag für spezifischen Commit erstellen
+    Beispiel: git tag -a v0.9 a1b2c3d4
+git push origin [tag-name] - Tag pushen
+    Beispiel: git push origin v1.0
+git push origin --tags - Alle Tags pushen
+    Beispiel: git push origin --tags
+git tag -d [tag-name] - Lokalen Tag löschen
+    Beispiel: git tag -d v1.0
+git push origin --delete [tag-name] - Remote Tag löschen
+    Beispiel: git push origin --delete v1.0
+
+## Merge Conflicts lösen
+git status - Konflikt-Status anzeigen
+    Beispiel: git status (zeigt CONFLICT-Dateien)
+git diff - Konflikte in Dateien anzeigen
+    Beispiel: git diff
+git add [resolved-file] - Gelöste Datei als resolved markieren
+    Beispiel: git add index.html
+git commit - Merge-Commit nach Konfliktlösung erstellen
+    Beispiel: git commit
+git merge --abort - Merge abbrechen bei Konflikten
+    Beispiel: git merge --abort
+git mergetool - Externes Merge-Tool öffnen
+    Beispiel: git mergetool
+
+## Nützliche Aliases
+git config --global alias.co checkout - Alias für checkout
+    Beispiel: git config --global alias.co checkout
+git config --global alias.br branch - Alias für branch
+    Beispiel: git config --global alias.br branch
+git config --global alias.ci commit - Alias für commit
+    Beispiel: git config --global alias.ci commit
+git config --global alias.st status - Alias für status
+    Beispiel: git config --global alias.st status
+git config --global alias.unstage 'reset HEAD --' - Alias für unstage
+    Beispiel: git config --global alias.unstage 'reset HEAD --'
+git config --global alias.last 'log -1 HEAD' - Alias für letzten Commit
+    Beispiel: git config --global alias.last 'log -1 HEAD'
+git config --global alias.visual '!gitk' - Alias für grafische Darstellung
+    Beispiel: git config --global alias.visual '!gitk'
+
+## Erweiterte Log-Befehle
+git log --author="name" - Commits von bestimmtem Autor
+    Beispiel: git log --author="Max Mustermann"
+git log --since="2 weeks ago" - Commits der letzten 2 Wochen
+    Beispiel: git log --since="2 weeks ago"
+git log --until="2023-12-31" - Commits bis zu bestimmtem Datum
+    Beispiel: git log --until="2023-12-31"
+git log --grep="keyword" - Commits mit bestimmtem Keyword in Message
+    Beispiel: git log --grep="fix"
+git log -S "code" - Commits die bestimmten Code hinzugefügt/entfernt haben
+    Beispiel: git log -S "function login"
+git log --follow [file] - Historie einer Datei verfolgen (auch bei Umbenennungen)
+    Beispiel: git log --follow README.md
+git log --stat - Log mit Dateistatistiken
+    Beispiel: git log --stat
+git log --pretty=format:"%h - %an, %ar : %s" - Benutzerdefiniertes Log-Format
+    Beispiel: git log --pretty=format:"%h - %an, %ar : %s"
+
+## Submodules
+git submodule add [url] [path] - Submodule hinzufügen
+    Beispiel: git submodule add https://github.com/user/lib.git vendor/lib
+git submodule init - Submodules initialisieren
+    Beispiel: git submodule init
+git submodule update - Submodules aktualisieren
+    Beispiel: git submodule update
+git submodule update --remote - Submodules auf neueste Remote-Version aktualisieren
+    Beispiel: git submodule update --remote
+git submodule foreach [command] - Befehl in allen Submodules ausführen
+    Beispiel: git submodule foreach git pull origin main
+
+## Hooks und Automation
+git config core.hooksPath [path] - Hooks-Verzeichnis setzen
+    Beispiel: git config core.hooksPath .githooks
+.git/hooks/pre-commit - Pre-commit Hook erstellen
+    Beispiel: Datei mit Tests oder Linting vor jedem Commit
+.git/hooks/post-commit - Post-commit Hook erstellen
+    Beispiel: Automatische Benachrichtigungen nach Commit
+.git/hooks/pre-push - Pre-push Hook erstellen
+    Beispiel: Tests vor jedem Push ausführen
+
+## Nützliche Workflows
+
+### Feature Branch Workflow
+git checkout main - Zu main Branch wechseln
+git pull origin main - Neueste Änderungen holen
+git checkout -b feature/new-feature - Feature Branch erstellen
+# Entwicklung...
+git add . && git commit -m "Implement new feature"
+git push -u origin feature/new-feature - Feature Branch pushen
+# Pull Request erstellen
+git checkout main && git pull origin main - Nach Merge main aktualisieren
+git branch -d feature/new-feature - Feature Branch löschen
+
+### Hotfix Workflow
+git checkout main - Zu main Branch
+git checkout -b hotfix/critical-bug - Hotfix Branch erstellen
+# Bug Fix...
+git add . && git commit -m "Fix critical bug"
+git push -u origin hotfix/critical-bug
+# Nach Merge:
+git checkout main && git pull origin main
+git branch -d hotfix/critical-bug
+
+### Commit Message Convention
+git commit -m "feat: add login functionality" - Neue Funktion
+git commit -m "fix: resolve authentication bug" - Bug Fix
+git commit -m "docs: update README with installation steps" - Dokumentation
+git commit -m "style: fix code formatting" - Styling
+git commit -m "refactor: improve database query performance" - Refactoring
+git commit -m "test: add unit tests for user service" - Tests
+git commit -m "chore: update dependencies" - Wartungsarbeiten
+
+## Troubleshooting
+git reflog - Alle Ref-Änderungen anzeigen (auch gelöschte Commits)
+    Beispiel: git reflog
+git fsck --lost-found - Verlorene Commits finden
+    Beispiel: git fsck --lost-found
+git gc - Garbage Collection ausführen
+    Beispiel: git gc
+git clean -fd - Unverfolgte Dateien und Verzeichnisse löschen
+    Beispiel: git clean -fd
+git clean -n - Vorschau was gelöscht würde
+    Beispiel: git clean -n
+git bisect start - Binary Search für Bug-Finding starten
+    Beispiel: git bisect start
+git bisect bad - Aktuellen Commit als schlecht markieren
+    Beispiel: git bisect bad
+git bisect good [commit] - Commit als gut markieren
+    Beispiel: git bisect good HEAD~10

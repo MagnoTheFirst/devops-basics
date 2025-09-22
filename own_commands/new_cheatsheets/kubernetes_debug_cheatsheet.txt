@@ -1,0 +1,112 @@
+# Kubernetes Debugging Cheat-Sheet
+
+## Kontext & Namespace
+kubectl config get-contexts                   # verfügbare Kontexte
+kubectl config use-context <ctx>              # Kontext wechseln
+kubectl config set-context --current --namespace=dev  # Default-NS setzen
+kubectl config view --minify                  # aktuellen Kontext anzeigen
+
+## Ressourcen-Übersicht
+kubectl get pods -A                           # alle Pods
+kubectl get pods,deploy,svc,ingress -n <ns>   # Kernresourcen im NS
+kubectl get po -o wide -n <ns>                # mit Node/IP
+kubectl get events -n <ns> --sort-by=.lastTimestamp   # Events zeitlich
+
+## Details & Logs
+kubectl describe pod <pod> -n <ns>            # Events, Probes, Mounts
+kubectl logs <pod> -n <ns>                    # Logs des 1. Containers
+kubectl logs <pod> -c <container> -n <ns>     # Logs eines Containers
+kubectl logs <pod> --previous -n <ns>         # letzte Crash-Logs
+kubectl exec -it <pod> -n <ns> -- sh          # in Pod-Shell (falls vorhanden)
+kubectl cp <ns>/<pod>:/path/in/pod ./local    # Dateien kopieren
+
+## Rollouts & Health
+kubectl rollout status deploy/<name> -n <ns>  # Rollout-Status
+kubectl rollout history deploy/<name> -n <ns> # Historie/Revisionen
+kubectl rollout undo deploy/<name> -n <ns> --to-revision=3  # Rollback
+kubectl get deploy/<name> -n <ns> -o yaml | yq '.spec.template.spec.containers[].readinessProbe'  # Probes prüfen (yq)
+kubectl get pod <pod> -n <ns> -o jsonpath='{.status.containerStatuses[*].restartCount}'  # Restart-Zähler
+
+## Service/Netzwerk-Debug
+kubectl get svc,endpoints <svc> -n <ns>       # Endpoints vorhanden?
+kubectl describe svc <svc> -n <ns>            # Ports/Selectors
+kubectl port-forward svc/<svc> 8080:80 -n <ns>  # lokal auf Service
+kubectl exec -it <pod> -n <ns> -- wget -qO- http://<svc>.<ns>.svc.cluster.local:80  # aus Pod testen
+kubectl get ingress -n <ns>                   # Ingress prüfen
+kubectl describe ingress <ing> -n <ns>        # Routen/Backends/Events
+kubectl get netpol -n <ns>                    # NetworkPolicies
+kubectl describe netpol <name> -n <ns>
+
+## Pending / Scheduling-Probleme
+kubectl describe pod <pod> -n <ns>            # Events lesen (Insufficient cpu?)
+kubectl get nodes                              # Node-Kapazität/Status
+kubectl describe node <node>                   # Taints, Allocatable
+# Häufige Ursachen: zu hohe requests, nodeSelector/affinity matcht nicht, Taints ohne Toleration
+
+## Ressourcen & OOM
+kubectl top pods -n <ns>                      # CPU/Mem live (metrics-server nötig)
+kubectl top nodes
+kubectl get pod <pod> -n <ns> -o jsonpath='{.status.containerStatuses[0].lastState.terminated.reason}'  # OOMKilled?
+kubectl describe pod <pod> -n <ns> | grep -A3 -i limits  # Requests/Limits
+
+## Ephemeral Container (live debuggen)
+kubectl debug pod/<pod> -n <ns> --image=nicolaka/netshoot --target=<container>  # Debug-Container anhängen
+# Tools: curl, dig, tcpdump, mtr etc.
+
+## Config & Secrets
+kubectl get cm,secret -n <ns>
+kubectl describe cm <cm> -n <ns>
+kubectl get secret <sec> -n <ns> -o jsonpath='{.data.KEY}' | base64 -d  # Wert anzeigen
+kubectl exec -it <pod> -n <ns> -- printenv | grep MY_                  # Env prüfen
+kubectl describe deploy <name> -n <ns> | sed -n '/Environment:/,+20p'   # Env aus Deployment
+
+## Jobs & CronJobs
+kubectl get jobs,cronjobs -n <ns>
+kubectl logs job/<job> -n <ns>
+kubectl describe cronjob <name> -n <ns>  # Zeitplan, letzte Runs
+
+## Storage
+kubectl get pvc,pv -n <ns>
+kubectl describe pvc <pvc> -n <ns>
+kubectl exec -it <pod> -n <ns> -- df -h  # Platz im Container
+kubectl describe pod <pod> -n <ns> | sed -n '/Mounts:/,+10p'  # Mounts
+
+## RBAC / Berechtigungen
+kubectl auth can-i get pods -n <ns>       # Rechte prüfen
+kubectl auth can-i '*' '*' --as <user> -n <ns>  # Impersonation
+kubectl get roles,rolebindings -n <ns>
+kubectl get clusterroles,clusterrolebindings
+
+## Helm (Troubleshooting)
+helm ls -n <ns>                            # Releases
+helm history <release> -n <ns>             # Revisionen
+helm rollback <release> <rev> -n <ns>      # Rollback
+helm template <release> ./chart -f values.yaml | less  # gerenderte Manifeste
+helm lint ./chart                          # Lint-Checks
+helm upgrade --install <release> ./chart -n <ns> --dry-run --debug  # Dry-Run mit Logs
+
+## Typische Debug-Flows
+
+A) CrashLoopBackOff
+1. kubectl logs <pod> --previous -n <ns>
+2. kubectl describe pod <pod> -n <ns>  # Events/Probes
+3. Env/Config prüfen (ConfigMap/Secret, Mounts)
+4. Resources/Ports/Start-Befehle checken, lokal reproduzieren
+
+B) Pending Pod (keine Scheduling-Zuweisung)
+1. describe pod → genaue Event-Fehler
+2. Requests zu hoch? Node-Kapazität reicht?
+3. Taints/Tolerations, nodeSelector/affinity prüfen
+4. ImagePullBackOff? → Registry/Secret
+
+C) Service erreichbar? aber App nicht
+1. kubectl get endpoints <svc> -n <ns>
+2. port-forward und lokal testen
+3. aus Pod: curl http://<svc>.<ns>.svc.cluster.local:port
+4. Ingress/Netpol/Firewall prüfen
+
+D) Start dauert lange, Probes schlagen fehl
+1. startupProbe setzen (verhindert frühzeitiges Killen)
+2. readinessProbe großzügiger (timeoutSeconds, periodSeconds, failureThreshold)
+3. Logs auf init/DB-Migrations prüfen
+

@@ -1,0 +1,617 @@
+# Linux System Debugging Guide
+
+## 🔍 Systematisches Linux System Debugging
+
+### **Schritt 1: System-Übersicht verschaffen**
+```bash
+# System-Grundinformationen
+uname -a
+uptime
+who
+ps aux | head -20
+```
+
+### **Schritt 2: Ressourcen-Status prüfen**
+```bash
+# Ressourcenverbrauch schnell checken
+top
+htop  # Falls installiert
+free -h
+df -h
+```
+
+## 🚨 Häufige Linux-System-Probleme und Lösungen
+
+### **Problem 1: System läuft langsam**
+
+#### **Symptom:**
+- Hohe Load Average
+- Langsame Befehlsausführung
+- Unresponsive Services
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Load Average und Prozesse
+uptime
+# Load > Anzahl CPU-Kerne = Problem
+
+top -o %CPU
+# Sortiert nach CPU-Verbrauch
+
+ps aux --sort=-%cpu | head -10
+# Top 10 CPU-intensive Prozesse
+
+# 2. Memory-Verbrauch analysieren
+free -h
+# Verfügbarer Speicher
+
+ps aux --sort=-%mem | head -10
+# Top 10 Memory-intensive Prozesse
+
+cat /proc/meminfo | head -20
+# Detaillierte Memory-Statistiken
+
+# 3. I/O-Bottlenecks finden
+iostat -x 1 5
+# I/O-Statistiken (falls sysstat installiert)
+
+iotop
+# Live I/O-Monitoring (falls iotop installiert)
+
+# 4. Netzwerk-Performance
+netstat -i
+# Netzwerk-Interface-Statistiken
+
+ss -tuln
+# Aktive Netzwerkverbindungen
+```
+
+### **Problem 2: Kein freier Speicherplatz**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Speicherverbrauch analysieren
+df -h
+# Zeigt Filesystem-Auslastung pro Mount-Point
+
+df -i
+# Inode-Verbrauch (manchmal das Problem)
+
+# 2. Große Dateien/Verzeichnisse finden
+du -sh /* 2>/dev/null | sort -hr | head -10
+# Top 10 größte Verzeichnisse im Root
+
+find / -type f -size +100M 2>/dev/null | head -20
+# Dateien größer als 100MB
+
+# 3. Log-Dateien prüfen
+du -sh /var/log/*
+ls -lah /var/log/ | sort -hr -k5
+
+# 4. Temp-Dateien aufräumen
+du -sh /tmp /var/tmp
+ls -la /tmp/
+
+# 5. Gelöschte aber noch offene Dateien finden
+lsof +L1
+# Dateien die gelöscht aber noch von Prozessen verwendet werden
+
+# 6. Spezifische Verzeichnisse analysieren
+ncdu /var/log
+# Interaktiver Disk-Usage-Analyzer (falls installiert)
+```
+
+### **Problem 3: Service startet nicht**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Service-Status prüfen
+systemctl status [service-name]
+# Beispiel: systemctl status nginx
+
+# 2. Service-Logs anzeigen
+journalctl -u [service-name] -f
+# Beispiel: journalctl -u nginx -f
+
+# 3. Service-Logs der letzten Zeit
+journalctl -u [service-name] --since "1 hour ago"
+# Beispiel: journalctl -u nginx --since "1 hour ago"
+
+# 4. Service-Konfiguration testen
+nginx -t  # Für nginx
+apache2ctl configtest  # Für Apache
+
+# 5. Abhängigkeiten prüfen
+systemctl list-dependencies [service-name]
+# Beispiel: systemctl list-dependencies nginx
+
+# 6. Port-Konflikte prüfen
+ss -tuln | grep [port]
+# Beispiel: ss -tuln | grep :80
+
+# 7. Dateiberechtigungen prüfen
+ls -la /etc/nginx/
+ls -la /var/log/nginx/
+```
+
+### **Problem 4: Netzwerk-Verbindungsprobleme**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Netzwerk-Interface-Status
+ip addr show
+# Alle Netzwerk-Interfaces
+
+ip route show
+# Routing-Tabelle
+
+# 2. DNS-Auflösung testen
+nslookup google.com
+dig google.com
+# DNS-Funktionalität
+
+cat /etc/resolv.conf
+# DNS-Server-Konfiguration
+
+# 3. Konnektivität testen
+ping -c 4 8.8.8.8
+# Internet-Konnektivität (IP)
+
+ping -c 4 google.com
+# Internet-Konnektivität (DNS)
+
+traceroute google.com
+# Route zum Ziel verfolgen
+
+# 4. Port-Erreichbarkeit testen
+telnet [host] [port]
+# Beispiel: telnet google.com 80
+
+nc -zv [host] [port]
+# Beispiel: nc -zv google.com 443
+
+# 5. Lokale Ports prüfen
+ss -tuln
+netstat -tuln  # Fallback falls ss nicht verfügbar
+
+# 6. Firewall-Status
+iptables -L -n
+ufw status  # Ubuntu/Debian
+firewall-cmd --list-all  # CentOS/RHEL
+```
+
+### **Problem 5: User/Permission-Probleme**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. User-Informationen
+whoami
+id
+groups
+
+# 2. Dateiberechtigungen prüfen
+ls -la [file/directory]
+# Beispiel: ls -la /var/www/html/
+
+# 3. Besitzer und Gruppe ändern
+chown user:group [file]
+# Beispiel: chown www-data:www-data /var/www/html/index.html
+
+# 4. Berechtigungen ändern
+chmod 755 [file]
+# Beispiel: chmod 755 /var/www/html/
+
+# 5. ACL prüfen (falls verwendet)
+getfacl [file]
+# Access Control Lists
+
+# 6. SELinux-Status (CentOS/RHEL)
+getenforce
+sestatus
+# SELinux kann Zugriff blockieren
+
+audit2allow -a  # SELinux-Fehler analysieren
+
+# 7. AppArmor-Status (Ubuntu/Debian)
+aa-status
+# AppArmor-Profile prüfen
+```
+
+## 🔧 Erweiterte Linux-Debugging-Techniken
+
+### **Log-Analyse**
+```bash
+# 1. System-Logs durchsuchen
+journalctl -p err -b
+# Alle Fehler seit letztem Boot
+
+journalctl --since "2024-01-01" --until "2024-01-02"
+# Logs für bestimmten Zeitraum
+
+tail -f /var/log/syslog
+# Live-Log-Monitoring
+
+# 2. Log-Rotation prüfen
+ls -la /var/log/ | grep -E "\.gz$|\.1$"
+# Rotierte Logs
+
+logrotate -d /etc/logrotate.conf
+# Logrotate-Konfiguration testen
+
+# 3. Anwendungs-spezifische Logs
+tail -f /var/log/nginx/error.log
+tail -f /var/log/apache2/error.log
+tail -f /var/log/mysql/error.log
+
+# 4. Kernel-Messages
+dmesg | tail -20
+# Kernel-Ring-Buffer
+
+dmesg -T | grep -i error
+# Kernel-Fehler mit Timestamps
+```
+
+### **Process-Debugging**
+```bash
+# 1. Prozess-Hierarchie
+pstree
+# Prozess-Baum anzeigen
+
+ps auxf
+# Prozess-Tree mit Details
+
+# 2. Prozess-Details
+cat /proc/[PID]/status
+# Detaillierte Prozess-Informationen
+
+cat /proc/[PID]/cmdline
+# Befehlszeile des Prozesses
+
+lsof -p [PID]
+# Offene Dateien des Prozesses
+
+# 3. Prozess-Signale
+kill -l
+# Alle verfügbaren Signale
+
+kill -TERM [PID]  # Graceful shutdown
+kill -KILL [PID]  # Force kill
+kill -USR1 [PID]  # User-defined signal
+
+# 4. Zombie-Prozesse
+ps aux | grep '<defunct>'
+# Zombie-Prozesse finden
+
+# 5. Process-Tracing
+strace -p [PID]
+# System-Calls eines laufenden Prozesses verfolgen
+
+ltrace -p [PID]
+# Library-Calls verfolgen
+```
+
+### **System-Performance-Analyse**
+```bash
+# 1. CPU-Analyse
+cat /proc/cpuinfo | grep -E "(processor|model name|cpu MHz)"
+# CPU-Informationen
+
+lscpu
+# CPU-Architektur-Details
+
+vmstat 1 5
+# System-Performance-Statistiken
+
+# 2. Memory-Analyse
+cat /proc/meminfo
+# Detaillierte Memory-Informationen
+
+smem -t  # Falls installiert
+# Memory-Verbrauch pro Prozess
+
+# 3. I/O-Analyse
+iotop -o
+# Nur Prozesse mit I/O-Aktivität
+
+iostat -x 1 5
+# I/O-Statistiken
+
+# 4. Netzwerk-Analyse
+iftop  # Falls installiert
+# Live-Netzwerk-Traffic
+
+nethogs  # Falls installiert
+# Netzwerk-Traffic per Prozess
+```
+
+## 📋 Linux Debugging Checkliste
+
+### **Bei jedem System-Problem zuerst:**
+```bash
+1. uptime                    # Load und Uptime
+2. free -h                   # Memory-Status
+3. df -h                     # Disk-Space
+4. ps aux | head -20         # Top-Prozesse
+```
+
+### **Service-Probleme:**
+```bash
+1. systemctl status [service]           # Service-Status
+2. journalctl -u [service] -f           # Live-Logs
+3. ss -tuln | grep [port]               # Port-Status
+4. systemctl list-dependencies [service] # Abhängigkeiten
+```
+
+### **Performance-Probleme:**
+```bash
+1. top                          # Live-Performance
+2. iostat -x 1 5               # I/O-Performance
+3. ps aux --sort=-%cpu          # CPU-intensive Prozesse
+4. ps aux --sort=-%mem          # Memory-intensive Prozesse
+```
+
+### **Netzwerk-Probleme:**
+```bash
+1. ip addr show                 # Interface-Status
+2. ping -c 4 8.8.8.8           # Grundkonnektivität
+3. nslookup google.com          # DNS-Funktionalität
+4. ss -tuln                     # Listening Ports
+```
+
+## 🎯 Praktische Linux-Debugging-Szenarien
+
+### **Szenario 1: Web-Server antwortet nicht**
+```bash
+# Problem: Nginx/Apache nicht erreichbar
+
+# Schritt 1: Service-Status
+systemctl status nginx
+# Läuft der Service?
+
+# Schritt 2: Port-Status
+ss -tuln | grep :80
+# Lauscht der Service auf Port 80?
+
+# Schritt 3: Process-Check
+ps aux | grep nginx
+# Läuft der nginx-Prozess?
+
+# Schritt 4: Logs analysieren
+tail -50 /var/log/nginx/error.log
+journalctl -u nginx --since "1 hour ago"
+
+# Schritt 5: Konfiguration testen
+nginx -t
+# Ist die Konfiguration valide?
+
+# Schritt 6: Firewall prüfen
+iptables -L -n | grep 80
+ufw status
+
+# Schritt 7: Lokaler Test
+curl -I localhost:80
+# Funktioniert lokal?
+
+# Schritt 8: Datei-Berechtigungen
+ls -la /var/www/html/
+# Kann nginx auf Dateien zugreifen?
+```
+
+### **Szenario 2: System extrem langsam**
+```bash
+# Problem: Hohe Load, System unresponsive
+
+# Schritt 1: Load-Average prüfen
+uptime
+# Load > CPU-Kerne?
+
+# Schritt 2: Top-Prozesse identifizieren
+top -o %CPU
+# Welcher Prozess verbraucht CPU?
+
+# Schritt 3: Memory-Pressure prüfen
+free -h
+cat /proc/meminfo | grep -E "(MemTotal|MemAvailable|SwapTotal|SwapFree)"
+# Swap-Nutzung hoch?
+
+# Schritt 4: I/O-Bottleneck prüfen
+iostat -x 1 5
+# Hohe %iowait?
+
+# Schritt 5: Zombie-Prozesse
+ps aux | grep '<defunct>'
+# Zu viele Zombie-Prozesse?
+
+# Schritt 6: System-Events
+dmesg | tail -20
+# Kernel-Panic oder Hardware-Probleme?
+
+# Schritt 7: Disk-Space
+df -h
+# Volle Festplatte?
+
+# Schritt 8: Process-Details
+ps auxf | less
+# Prozess-Hierarchie analysieren
+```
+
+### **Szenario 3: SSH-Verbindung bricht ab**
+```bash
+# Problem: SSH-Sessions terminieren unexpectedly
+
+# Schritt 1: SSH-Service-Status
+systemctl status ssh
+systemctl status sshd  # CentOS/RHEL
+
+# Schritt 2: SSH-Logs
+journalctl -u ssh -f
+tail -f /var/log/auth.log
+
+# Schritt 3: SSH-Konfiguration
+sshd -T | grep -E "(ClientAliveInterval|ClientAliveCountMax|MaxStartups)"
+# SSH-Timeout-Einstellungen
+
+# Schritt 4: Netzwerk-Stabilität
+ping -c 100 [client-ip]
+# Packet-Loss?
+
+# Schritt 5: System-Ressourcen
+free -h
+df -h
+# Memory/Disk-Probleme?
+
+# Schritt 6: User-Limits
+ulimit -a
+cat /etc/security/limits.conf
+# Process/File-Limits
+
+# Schritt 7: TCP-Connection-Tracking
+ss -tn | grep :22
+# Anzahl SSH-Verbindungen
+
+# Schritt 8: Firewall/fail2ban
+fail2ban-client status sshd
+iptables -L -n | grep 22
+```
+
+### **Szenario 4: Cron-Jobs laufen nicht**
+```bash
+# Problem: Scheduled Tasks werden nicht ausgeführt
+
+# Schritt 1: Cron-Service-Status
+systemctl status cron
+systemctl status crond  # CentOS/RHEL
+
+# Schritt 2: Cron-Logs
+journalctl -u cron -f
+tail -f /var/log/cron
+
+# Schritt 3: Crontab-Syntax prüfen
+crontab -l
+# User-Crontab anzeigen
+
+sudo crontab -l -u [username]
+# Andere User-Crontabs
+
+# Schritt 4: System-Crontabs
+ls -la /etc/cron.*
+cat /etc/crontab
+
+# Schritt 5: Script-Berechtigungen
+ls -la [script-path]
+# Ist das Script ausführbar?
+
+# Schritt 6: Script-Dependencies
+which [command]
+# Sind alle Commands im PATH?
+
+# Schritt 7: Environment-Variables
+env | grep PATH
+# Cron hat minimale Environment
+
+# Schritt 8: Manual-Test
+sudo -u [cron-user] [script-path]
+# Script manuell als Cron-User ausführen
+```
+
+### **Szenario 5: Disk-I/O-Performance-Probleme**
+```bash
+# Problem: Langsame Disk-Performance
+
+# Schritt 1: I/O-Statistiken
+iostat -x 1 5
+# %iowait und await-Zeiten
+
+# Schritt 2: Disk-Usage pro Prozess
+iotop -o
+# Welche Prozesse verursachen I/O?
+
+# Schritt 3: Filesystem-Status
+df -h
+df -i  # Inode-Usage
+
+# Schritt 4: Mount-Optionen
+mount | grep [filesystem]
+# Sind Mount-Optionen optimal?
+
+# Schritt 5: Disk-Hardware-Status
+smartctl -a /dev/sda  # Falls smartmontools installiert
+# Hardware-Fehler?
+
+dmesg | grep -i "i/o error"
+# Kernel-I/O-Errors?
+
+# Schritt 6: Filesystem-Check
+fsck -n /dev/[device]
+# Read-only Filesystem-Check
+
+# Schritt 7: Block-Device-Info
+lsblk
+cat /proc/partitions
+
+# Schritt 8: I/O-Scheduler
+cat /sys/block/sda/queue/scheduler
+# Optimaler I/O-Scheduler gesetzt?
+```
+
+## 🚀 Profi-Tipps für Linux-Debugging
+
+### **Essential Tools installieren:**
+```bash
+# Ubuntu/Debian
+apt install htop iotop iftop ncdu tree lsof strace ltrace
+
+# CentOS/RHEL
+yum install epel-release
+yum install htop iotop iftop ncdu tree lsof strace ltrace
+
+# Oder mit dnf (newer versions)
+dnf install htop iotop iftop ncdu tree lsof strace ltrace
+```
+
+### **One-Liner für Quick-System-Check:**
+```bash
+# System-Health-Check
+echo "=== UPTIME ===" && uptime && \
+echo "=== MEMORY ===" && free -h && \
+echo "=== DISK ===" && df -h && \
+echo "=== LOAD ===" && cat /proc/loadavg && \
+echo "=== TOP PROCESSES ===" && ps aux --sort=-%cpu | head -10
+```
+
+### **Log-Monitoring mit tail:**
+```bash
+# Multiple Logs gleichzeitig monitoren
+tail -f /var/log/syslog /var/log/nginx/error.log /var/log/mysql/error.log
+
+# Colorized log output
+tail -f /var/log/syslog | grep --color=always -E "(ERROR|WARN|FAIL)"
+```
+
+### **Process-Monitoring-Script:**
+```bash
+#!/bin/bash
+# system-monitor.sh
+while true; do
+    clear
+    echo "=== $(date) ==="
+    echo "Load: $(cat /proc/loadavg)"
+    echo "Memory: $(free -h | grep Mem:)"
+    echo "Top CPU:"
+    ps aux --sort=-%cpu | head -5
+    sleep 5
+done
+```
+
+## 💡 Linux Debugging Merksätze
+
+1. **Logs first** - `journalctl` und `/var/log/` sind deine Freunde
+2. **Resources check** - CPU, Memory, Disk, Network systematisch prüfen
+3. **Service status** - `systemctl status` zeigt oft das Problem
+4. **Process tree** - `ps auxf` oder `pstree` für Übersicht
+5. **Network basics** - `ping`, `dig`, `ss` für Netzwerk-Debugging
+6. **Permission matters** - `ls -la` und `id` bei Zugriffsproblemen
+7. **Hardware check** - `dmesg` für Hardware-/Kernel-Probleme
+8. **Environment context** - Cron/Service-Environment != User-Environment
+
+**Linux-Debugging ist systematische Detektiv-Arbeit - arbeite dich von außen nach innen vor!** 🔍

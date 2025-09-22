@@ -1,0 +1,324 @@
+# Bash Cheat Sheet – Files • Search • Edit • Debug • Monitor
+
+> Opinionated, safe-by-default snippets for daily DevOps work. Replace `…` with your values. Tested on GNU utils (Linux). Some flags differ on macOS/BSD.
+
+---
+
+## 1) File & Directory Basics
+
+```bash
+# list
+ls -lah          # human sizes, show hidden
+ls -lah --time-style=long-iso  # stable timestamps
+
+# paths
+pwd              # current dir
+basename /path/to/file
+dirname  /path/to/file
+
+# create
+mkdir -p dir/subdir
+install -D /dev/null path/to/file   # create file & parents
+
+# copy / move / remove (safe)
+cp -ai src dest   # -a archive (perm, times), -i interactive (ask before overwrite)
+mv -i src dest    # ask before overwrite
+rm -Iv --one-file-system path  # verbose, avoid crossing FS
+
+# checksums (verify downloads)
+sha256sum file | cut -d' ' -f1
+sha256sum -c checksums.txt     # where file  sha256hash
+```
+
+---
+
+## 2) Find Files & Filter by Time/Size/Type
+
+```bash
+# general pattern (case-insensitive)
+find /path -type f -iname '*pattern*'
+
+# by extension or name
+find . -type f -name '*.log'
+find . -type d -name '.git'
+
+# by size / time
+find . -type f -size +100M
+find . -type f -mtime -3        # modified in last 3 days
+find . -type f -newermt '2025-09-01'
+
+# by owner / perms
+find /var/log -type f -user syslog
+find . -type f -perm -0100      # executable by owner
+
+# delete safely (preview first!)
+find . -type f -name '*.tmp' -print       # preview
+find . -type f -name '*.tmp' -delete      # then delete
+
+# exec actions (null-safe)
+find . -type f -name '*.txt' -print0 | xargs -0 grep -nH "needle"
+find . -type f -name '*.jpg' -exec mv -i {} target/ \;
+```
+
+---
+
+## 3) Search Inside Files (grep/rg) & Count
+
+```bash
+# grep basics
+grep -RIn --line-number --color=auto 'needle' /path
+grep -RIn --include='*.{yml,yaml}' 'image:' .
+
+# word boundary / regex / invert / context
+grep -RInw '\bERROR\b' .         # whole word
+grep -RInE 'foo|bar' .            # extended regex
+grep -RInv 'DEBUG' .              # lines NOT matching
+grep -RInC2 'timeout' .           # 2 lines context
+
+# count occurrences per file
+grep -RIl 'needle' . | xargs -I{} sh -c "printf '%6d  %s\n' $(grep -o 'needle' '{}' | wc -l) '{}'" | sort -nr
+```
+
+---
+
+## 4) In‑Place Edits (sed/awk) – with Backups
+
+```bash
+# sed: replace string (create .bak backups)
+sed -i.bak 's/old/new/g' file
+
+# only lines matching pattern
+sed -n '/pattern/p' file
+
+# delete lines matching pattern
+sed -i.bak '/^#/d' file           # drop comments
+
+# insert after line matching
+sed -i.bak '/\[server\]/a port=5432' file.ini
+
+# awk: column processing
+awk -F, '{sum+=$3} END {print sum}' data.csv
+
+# rename many files safely (null-delimited)
+find . -type f -name '* *' -print0 | while IFS= read -r -d '' f; do
+  mv -i -- "$f" "${f// /_}"
+done
+```
+
+> ⚠️ Tip: Always keep a `.bak` (or use version control). Test with `sed -n` before applying `-i`.
+
+---
+
+## 5) Move, Sync, and Archive
+
+```bash
+# rsync: mirror dir A→B (delete extras on dest), show progress
+rsync -aAXH --info=progress2 --delete source/ dest/
+
+# tar: create & extract (preserve perms)
+tar -czf backup.tgz /path
+mkdir restore && tar -xzf backup.tgz -C restore
+
+# zip unzip (no perms preservation)
+zip -r archive.zip folder
+unzip -l archive.zip && unzip archive.zip -d out/
+```
+
+---
+
+## 6) Disk, Space & Large Files
+
+```bash
+# what fills my disk?
+df -hT               # filesystems & free space
+du -hd1 /var/log     # size per dir (depth 1)
+
+# top 20 largest files under current dir
+find . -type f -printf '%s\t%p\n' | sort -nr | head -n 20 | awk '{printf "%10.1f MB  %s\n", $1/1024/1024, $2}'
+```
+
+---
+
+## 7) Processes, Logs, Ports, Network
+
+```bash
+# processes
+ps aux --sort=-%mem | head       # top memory users
+ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%cpu | head
+
+# realtime
+top           # or: htop (if installed)
+iostat 1      # from sysstat
+vmstat 1
+
+# systemd services & logs
+systemctl status name.service
+journalctl -u name.service --since "-1h" -n 200 -f
+
+# open ports & listeners
+ss -tulpn    # tcp/udp listening sockets
+lsof -i :8080
+
+# network tests
+ping -c 4 host
+curl -v https://example.com
+curl -I https://example.com       # headers only
+```
+
+---
+
+## 8) Text Utilities & JSON/YAML
+
+```bash
+# sort/uniq counts
+grep -oE '\w+' file | sort | uniq -c | sort -nr | head
+
+# cut columns
+cut -d: -f1,7 /etc/passwd | column -t -s:
+
+# join CSV by column (example join on col1)
+join -t, -1 1 -2 1 <(sort -t, -k1 fileA.csv) <(sort -t, -k1 fileB.csv)
+
+# JSON (jq) and YAML (yq) – if installed
+jq '.items[] | {name:.metadata.name, ns:.metadata.namespace}' k8s.json
+yq '.spec.template.spec.containers[].image' deploy.yaml
+```
+
+---
+
+## 9) Safe Deletion & Recovery Aids
+
+```bash
+# trash-cli (optional) instead of rm
+autocomplete: alias rm='trash-put'  # after installing trash-cli
+
+# find files changed recently (possible recovery)
+find . -type f -mtime -1 -print
+```
+
+---
+
+## 10) Bash Scripting Basics
+
+```bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
+# -E: trap ERR in functions; -e: exit on error; -u: undefined var is error; -o pipefail: fail on pipeline errors
+IFS=$'\n\t'
+
+# usage helper
+usage() {
+  echo "Usage: $(basename "$0") -i INPUT -o OUTPUT [--dry-run]" >&2
+}
+
+# default values
+DRY_RUN=false
+INPUT=""
+OUTPUT=""
+
+# parse args (getopts for short flags)
+while getopts ':i:o:h' flag; do
+  case "$flag" in
+    i) INPUT=$OPTARG ;;
+    o) OUTPUT=$OPTARG ;;
+    h) usage; exit 0 ;;
+    :) echo "Missing argument for -$OPTARG" >&2; exit 2 ;;
+    ?) echo "Unknown option -$OPTARG" >&2; exit 2 ;;
+  esac
+done
+shift $((OPTIND-1))
+
+# validate
+[[ -r "$INPUT" ]] || { echo "Input not readable: $INPUT" >&2; exit 1; }
+[[ -n "$OUTPUT" ]] || { echo "Output required" >&2; exit 1; }
+
+# trap cleanup on exit or error
+tmpdir=$(mktemp -d)
+cleanup(){ rm -rf "$tmpdir"; }
+trap cleanup EXIT
+
+# main logic
+if $DRY_RUN; then
+  echo "Would process $INPUT → $OUTPUT"
+else
+  cp -a "$INPUT" "$tmpdir/" && mv -f "$tmpdir/$(basename "$INPUT")" "$OUTPUT"
+fi
+```
+
+**Patterns to remember**
+
+* `set -Eeuo pipefail` in jedem Script.
+* Benutze `mktemp` für sichere Temp-Pfade.
+* Mit `trap cleanup EXIT` immer aufräumen.
+* Für lange Pipelines: `cmd1 | cmd2 | tee out.log | cmd3` (behalten + weiterleiten).
+
+---
+
+## 11) Debugging Shell Scripts
+
+```bash
+bash -n script.sh         # Syntax check
+shellcheck script.sh      # statische Analyse (Install: apt/yum)
+
+bash -x script.sh         # trace execution
+PS4='+ ${BASH_SOURCE}:${LINENO}:${FUNCNAME[0]}() ' bash -x script.sh  # detailierter Trace
+
+# trace nur in Abschnitt
+debug_on()  { set -x; }
+debug_off() { set +x; }
+
+# timing
+time command
+```
+
+---
+
+## 12) Environment, Paths & Secrets
+
+```bash
+# env vars
+printenv | sort
+export FOO=bar
+
+# PATH prüfen/setzen
+printf '%s\n' "${PATH//:/\n}"
+export PATH="/opt/bin:$PATH"
+
+# secrets nur in env zur Laufzeit
+FOO_TOKEN=$(< /path/secret)
+command --token "$FOO_TOKEN"
+```
+
+---
+
+## 13) One‑Liners You’ll Actually Use
+
+```bash
+# replace tabs with 2 spaces in-place (backup)
+expand -t2 file > file.new && mv file{.new,}
+
+# tail multiple logs with tags
+tail -F /var/log/{syslog,auth.log} | awk '{print strftime("%F %T"), $0}'
+
+# check which process uses a file
+lsof /path/to/file
+
+# quick HTTP check with exit status
+curl -fsS -o /dev/null https://example.com && echo OK || echo FAIL
+```
+
+---
+
+## 14) Safety First
+
+* Verwende **`-i`** bei `cp`/`mv`/`rm` (oder mache Backups).
+* Nutze **null-sichere** Pipelines: `-print0 | xargs -0`.
+* Teste `sed`/`awk` ohne `-i` – erst wenn Output stimmt, in-place anwenden.
+* Versioniere Skripte (git) und logge Änderungen.
+
+---
+
+### Cheatsheet Ende ✦ Vorschläge?
+
+Sag mir, welche Umgebung du nutzt (Ubuntu/RHEL/macOS) – ich passe Flags/Beispiele an und kann dir eine druckfreundliche Version (PDF) erstellen.
+

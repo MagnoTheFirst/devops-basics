@@ -1,0 +1,693 @@
+# SQL Debugging Guide
+
+## 🔍 Systematisches SQL Debugging
+
+### **Schritt 1: Problem-Kategorisierung**
+```sql
+-- Häufige SQL-Problem-Typen:
+-- 1. Syntax-Fehler
+-- 2. Performance-Probleme (langsame Queries)
+-- 3. Falsche Ergebnisse (Logic-Fehler)
+-- 4. Connection/Permission-Probleme
+-- 5. Deadlocks/Locking-Issues
+```
+
+### **Schritt 2: Grundlegende Diagnose-Tools**
+```sql
+-- Aktuelle Verbindungen anzeigen (MySQL)
+SHOW PROCESSLIST;
+
+-- Aktuelle Queries (PostgreSQL)
+SELECT pid, usename, application_name, client_addr, state, query 
+FROM pg_stat_activity WHERE state = 'active';
+
+-- Server-Status (MySQL)
+SHOW STATUS;
+SHOW VARIABLES;
+```
+
+## 🚨 Häufige SQL-Probleme und Lösungen
+
+### **Problem 1: Query läuft zu langsam**
+
+#### **Symptom:**
+- Query dauert mehrere Sekunden/Minuten
+- Timeout-Fehler
+- Hohe CPU/Memory-Auslastung
+
+#### **Debugging-Schritte:**
+
+```sql
+-- 1. Query-Ausführungsplan analysieren (MySQL)
+EXPLAIN SELECT * FROM users WHERE email = 'user@example.com';
+EXPLAIN FORMAT=JSON SELECT * FROM users WHERE email = 'user@example.com';
+
+-- Query-Ausführungsplan (PostgreSQL)
+EXPLAIN ANALYZE SELECT * FROM users WHERE email = 'user@example.com';
+EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM users WHERE email = 'user@example.com';
+
+-- 2. Fehlende Indizes identifizieren
+-- MySQL: Schaue nach "Using filesort", "Using temporary", "Full table scan"
+-- PostgreSQL: Schaue nach "Seq Scan", hohe "cost" Werte
+
+-- 3. Index-Nutzung prüfen (MySQL)
+SHOW INDEX FROM users;
+SHOW INDEX FROM users WHERE Column_name = 'email';
+
+-- Index-Nutzung (PostgreSQL)
+SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'users';
+
+-- 4. Tabellen-Statistiken aktualisieren (MySQL)
+ANALYZE TABLE users;
+
+-- Statistiken aktualisieren (PostgreSQL)
+ANALYZE users;
+
+-- 5. Query-Cache prüfen (MySQL)
+SHOW STATUS LIKE 'Qcache%';
+
+-- 6. Slow-Query-Log aktivieren (MySQL)
+SET GLOBAL slow_query_log = 'ON';
+SET GLOBAL long_query_time = 2;  -- Queries > 2 Sekunden loggen
+SHOW VARIABLES LIKE 'slow_query_log%';
+```
+
+#### **Performance-Optimierung-Beispiele:**
+```sql
+-- SCHLECHT: Kein Index auf email
+SELECT * FROM users WHERE email = 'user@example.com';
+
+-- GUT: Index erstellen
+CREATE INDEX idx_users_email ON users (email);
+
+-- SCHLECHT: Function in WHERE verhindert Index-Nutzung
+SELECT * FROM orders WHERE YEAR(created_at) = 2024;
+
+-- GUT: Range-Query nutzt Index
+SELECT * FROM orders WHERE created_at >= '2024-01-01' AND created_at < '2025-01-01';
+
+-- SCHLECHT: LIKE mit führendem Wildcard
+SELECT * FROM users WHERE name LIKE '%John%';
+
+-- BESSER: LIKE ohne führendes Wildcard (wenn möglich)
+SELECT * FROM users WHERE name LIKE 'John%';
+
+-- SCHLECHT: OR verhindert oft Index-Nutzung
+SELECT * FROM users WHERE email = 'user@example.com' OR phone = '1234567890';
+
+-- BESSER: UNION mit Index-optimierten Queries
+SELECT * FROM users WHERE email = 'user@example.com'
+UNION
+SELECT * FROM users WHERE phone = '1234567890';
+```
+
+### **Problem 2: Query gibt falsche Ergebnisse**
+
+#### **Debugging-Schritte:**
+```sql
+-- 1. Query schrittweise aufbauen
+-- Starte mit einfacher SELECT und erweitere schrittweise
+
+-- Schritt 1: Basis-Query
+SELECT COUNT(*) FROM orders;
+
+-- Schritt 2: Mit WHERE-Bedingung
+SELECT COUNT(*) FROM orders WHERE status = 'completed';
+
+-- Schritt 3: Mit JOIN
+SELECT COUNT(*) 
+FROM orders o 
+JOIN customers c ON o.customer_id = c.id 
+WHERE o.status = 'completed';
+
+-- 2. NULL-Werte prüfen
+SELECT COUNT(*) FROM orders WHERE customer_id IS NULL;
+SELECT COUNT(*) FROM orders WHERE customer_id IS NOT NULL;
+
+-- 3. Datentyp-Konvertierungen prüfen
+-- PROBLEM: Implizite Konvertierung
+SELECT * FROM orders WHERE order_id = '123';  -- String
+SELECT * FROM orders WHERE order_id = 123;    -- Integer
+
+-- 4. JOIN-Typen verstehen
+-- INNER JOIN: Nur matching Records
+SELECT o.*, c.name 
+FROM orders o 
+INNER JOIN customers c ON o.customer_id = c.id;
+
+-- LEFT JOIN: Alle Records aus linker Tabelle
+SELECT o.*, c.name 
+FROM orders o 
+LEFT JOIN customers c ON o.customer_id = c.id;
+
+-- 5. Duplicate-Detection
+SELECT customer_id, COUNT(*) as count
+FROM orders 
+GROUP BY customer_id 
+HAVING COUNT(*) > 1;
+
+-- 6. Case-Sensitivity prüfen (je nach DB)
+-- MySQL (standard case-insensitive)
+SELECT * FROM users WHERE name = 'john';
+SELECT * FROM users WHERE name = 'John';
+
+-- Case-sensitive Vergleich erzwingen
+SELECT * FROM users WHERE BINARY name = 'John';
+```
+
+#### **Häufige Logic-Fehler:**
+```sql
+-- FEHLER: Aggregation ohne GROUP BY
+-- FALSCH:
+SELECT customer_id, SUM(amount) FROM orders WHERE status = 'completed';
+
+-- RICHTIG:
+SELECT customer_id, SUM(amount) FROM orders WHERE status = 'completed' GROUP BY customer_id;
+
+-- FEHLER: WHERE vs HAVING
+-- FALSCH: WHERE mit Aggregat-Function
+SELECT customer_id, COUNT(*) FROM orders WHERE COUNT(*) > 5 GROUP BY customer_id;
+
+-- RICHTIG: HAVING für Aggregat-Bedingungen
+SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id HAVING COUNT(*) > 5;
+
+-- FEHLER: NULL-Behandlung
+-- Problem: NULL-Werte in Berechnungen
+SELECT name, salary * 12 as yearly_salary FROM employees;  -- NULL * 12 = NULL
+
+-- Lösung: NULL-Behandlung
+SELECT name, COALESCE(salary, 0) * 12 as yearly_salary FROM employees;
+SELECT name, ISNULL(salary, 0) * 12 as yearly_salary FROM employees;  -- SQL Server
+```
+
+### **Problem 3: Connection/Permission-Probleme**
+
+#### **Debugging-Schritte:**
+```sql
+-- 1. Connection-Details prüfen
+-- MySQL
+SELECT USER(), DATABASE(), CONNECTION_ID();
+SHOW GRANTS FOR CURRENT_USER();
+
+-- PostgreSQL
+SELECT current_user, current_database(), inet_client_addr(), inet_client_port();
+\du  -- Liste alle User (in psql)
+\l   -- Liste alle Databases (in psql)
+
+-- 2. User-Permissions prüfen (MySQL)
+SHOW GRANTS FOR 'username'@'hostname';
+SELECT * FROM mysql.user WHERE User = 'username';
+
+-- 3. Database-Permissions (PostgreSQL)
+SELECT grantee, privilege_type 
+FROM information_schema.role_table_grants 
+WHERE table_name = 'your_table';
+
+-- 4. Connection-Limits prüfen (MySQL)
+SHOW VARIABLES LIKE 'max_connections';
+SHOW STATUS LIKE 'Threads_connected';
+
+-- 5. Aktive Connections (PostgreSQL)
+SELECT count(*) FROM pg_stat_activity;
+SELECT max_conn, used FROM (
+  SELECT setting::int as max_conn, count(*) as used 
+  FROM pg_settings, pg_stat_activity 
+  WHERE name = 'max_connections'
+  GROUP BY setting
+) t;
+```
+
+### **Problem 4: Deadlocks und Locking-Issues**
+
+#### **Debugging-Schritte:**
+```sql
+-- 1. Aktuelle Locks anzeigen (MySQL)
+SHOW ENGINE INNODB STATUS;
+SELECT * FROM information_schema.INNODB_LOCKS;
+SELECT * FROM information_schema.INNODB_LOCK_WAITS;
+
+-- 2. Blockierte Queries finden (MySQL)
+SELECT 
+    r.trx_id waiting_trx_id,
+    r.trx_mysql_thread_id waiting_thread,
+    r.trx_query waiting_query,
+    b.trx_id blocking_trx_id,
+    b.trx_mysql_thread_id blocking_thread,
+    b.trx_query blocking_query
+FROM information_schema.innodb_lock_waits w
+INNER JOIN information_schema.innodb_trx b ON b.trx_id = w.blocking_trx_id
+INNER JOIN information_schema.innodb_trx r ON r.trx_id = w.requesting_trx_id;
+
+-- 3. Lange laufende Transactions (PostgreSQL)
+SELECT pid, usename, application_name, client_addr, backend_start, query_start, query
+FROM pg_stat_activity 
+WHERE state != 'idle' 
+AND query_start < now() - interval '5 minutes';
+
+-- 4. Locks in PostgreSQL
+SELECT 
+    activity.pid,
+    activity.usename,
+    activity.query,
+    locks.mode,
+    locks.locktype,
+    locks.granted
+FROM pg_stat_activity activity
+JOIN pg_locks locks ON locks.pid = activity.pid
+WHERE locks.granted = false;
+
+-- 5. Deadlock-Information (PostgreSQL Log)
+-- Aktiviere Deadlock-Logging:
+-- log_lock_waits = on
+-- deadlock_timeout = 1s
+```
+
+#### **Deadlock-Prevention-Strategien:**
+```sql
+-- 1. Konsistente Lock-Reihenfolge
+-- SCHLECHT: Inkonsistente Reihenfolge kann Deadlocks verursachen
+-- Transaction 1:
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+
+-- Transaction 2:
+UPDATE accounts SET balance = balance - 50 WHERE id = 2;
+UPDATE accounts SET balance = balance + 50 WHERE id = 1;
+
+-- GUT: Konsistente Reihenfolge (immer nach ID sortiert)
+-- Transaction 1:
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+
+-- Transaction 2:
+UPDATE accounts SET balance = balance + 50 WHERE id = 1;
+UPDATE accounts SET balance = balance - 50 WHERE id = 2;
+
+-- 2. Kürzere Transaktionen
+-- SCHLECHT: Lange Transaction
+BEGIN;
+SELECT * FROM large_table WHERE condition = 'value';  -- Lange Query
+-- ... viel Business Logic ...
+UPDATE other_table SET status = 'processed';
+COMMIT;
+
+-- BESSER: Kurze, fokussierte Transaktionen
+-- Query außerhalb der Transaction
+SELECT * FROM large_table WHERE condition = 'value';
+
+BEGIN;
+UPDATE other_table SET status = 'processed';
+COMMIT;
+```
+
+### **Problem 5: Memory/Resource-Probleme**
+
+#### **Debugging-Schritte:**
+```sql
+-- 1. Memory-Usage anzeigen (MySQL)
+SHOW STATUS LIKE 'innodb_buffer_pool%';
+SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+
+-- 2. Query-Memory-Usage (MySQL)
+SELECT 
+    THREAD_ID,
+    EVENT_NAME,
+    CURRENT_ALLOC,
+    HIGH_ALLOC
+FROM performance_schema.memory_summary_by_thread_by_event_name
+WHERE THREAD_ID = CONNECTION_ID()
+ORDER BY CURRENT_ALLOC DESC;
+
+-- 3. Temp-Table-Usage (MySQL)
+SHOW STATUS LIKE 'Created_tmp%';
+
+-- 4. PostgreSQL Memory Stats
+SELECT name, setting, unit, category 
+FROM pg_settings 
+WHERE name IN ('shared_buffers', 'work_mem', 'maintenance_work_mem', 'effective_cache_size');
+
+-- 5. Large Result Sets identifizieren
+-- Prüfe Query-Ergebnisse vor dem Ausführen
+SELECT COUNT(*) FROM large_table WHERE some_condition;
+-- Statt: SELECT * FROM large_table WHERE some_condition;
+```
+
+## 📋 SQL Debugging Checkliste
+
+### **Bei Performance-Problemen:**
+```sql
+1. EXPLAIN [query]                    -- Execution Plan
+2. SHOW INDEX FROM [table]            -- Index-Status
+3. ANALYZE TABLE [table]              -- Update Statistics
+4. Check for: Full table scans, filesort, temporary tables
+```
+
+### **Bei falschen Ergebnissen:**
+```sql
+1. Query schrittweise aufbauen        -- Komponenten isolieren
+2. NULL-Werte prüfen                  -- IS NULL vs IS NOT NULL
+3. JOIN-Typen überprüfen              -- INNER vs LEFT vs RIGHT
+4. Aggregations-Logic validieren      -- GROUP BY, HAVING
+```
+
+### **Bei Connection-Problemen:**
+```sql
+1. SELECT USER(), DATABASE()          -- Current user/db
+2. SHOW GRANTS FOR CURRENT_USER()     -- Permissions
+3. SHOW PROCESSLIST                   -- Active connections
+4. Check connection limits and timeouts
+```
+
+### **Bei Locking-Problemen:**
+```sql
+1. SHOW ENGINE INNODB STATUS          -- Lock status (MySQL)
+2. SELECT * FROM pg_locks             -- Lock info (PostgreSQL)
+3. Identify long-running transactions
+4. Check for deadlock patterns
+```
+
+## 🎯 Praktische SQL-Debugging-Szenarien
+
+### **Szenario 1: Query dauert 30+ Sekunden**
+```sql
+-- Problem: Langsame User-Query
+
+-- Schritt 1: Execution Plan analysieren
+EXPLAIN SELECT u.*, p.title 
+FROM users u 
+LEFT JOIN posts p ON u.id = p.user_id 
+WHERE u.created_at > '2024-01-01' 
+ORDER BY u.last_login DESC;
+
+-- Mögliche Probleme im Plan:
+-- "Using filesort" -> fehlender Index auf last_login
+-- "Using temporary" -> komplexe ORDER BY/GROUP BY
+-- "Full table scan" -> fehlender Index auf created_at
+
+-- Schritt 2: Fehlende Indizes erstellen
+CREATE INDEX idx_users_created_at ON users (created_at);
+CREATE INDEX idx_users_last_login ON users (last_login);
+CREATE INDEX idx_posts_user_id ON posts (user_id);
+
+-- Schritt 3: Query erneut testen
+EXPLAIN SELECT u.*, p.title 
+FROM users u 
+LEFT JOIN posts p ON u.id = p.user_id 
+WHERE u.created_at > '2024-01-01' 
+ORDER BY u.last_login DESC;
+
+-- Schritt 4: Bei großen Result-Sets limitieren
+SELECT u.*, p.title 
+FROM users u 
+LEFT JOIN posts p ON u.id = p.user_id 
+WHERE u.created_at > '2024-01-01' 
+ORDER BY u.last_login DESC
+LIMIT 100;
+
+-- Schritt 5: Alternative Query-Structure
+-- Wenn ORDER BY + JOIN problematisch:
+SELECT u.*, 
+       (SELECT title FROM posts WHERE user_id = u.id LIMIT 1) as title
+FROM users u 
+WHERE u.created_at > '2024-01-01' 
+ORDER BY u.last_login DESC
+LIMIT 100;
+```
+
+### **Szenario 2: Aggregation gibt unerwartete Ergebnisse**
+```sql
+-- Problem: SUM() gibt falsche Werte
+
+-- Original (problematische) Query:
+SELECT c.name, SUM(oi.price * oi.quantity) as total_spent
+FROM customers c
+JOIN orders o ON c.id = o.customer_id
+JOIN order_items oi ON o.id = oi.order_id
+WHERE o.status = 'completed'
+GROUP BY c.id, c.name;
+
+-- Schritt 1: Daten-Struktur verstehen
+SELECT COUNT(*) FROM customers;        -- z.B. 1000 Kunden
+SELECT COUNT(*) FROM orders;           -- z.B. 5000 Bestellungen  
+SELECT COUNT(*) FROM order_items;      -- z.B. 15000 Items
+
+-- Schritt 2: JOIN-Result ohne Aggregation prüfen
+SELECT c.name, o.id as order_id, oi.price, oi.quantity
+FROM customers c
+JOIN orders o ON c.id = o.customer_id
+JOIN order_items oi ON o.id = oi.order_id
+WHERE o.status = 'completed'
+AND c.name = 'John Doe'  -- Einen Kunden isolieren
+ORDER BY o.id, oi.id;
+
+-- Schritt 3: Problem identifizieren
+-- Wenn ein Kunde mehrere Orders mit mehreren Items hat:
+-- Customer: John Doe
+-- Order 1: Item A ($10), Item B ($20)  
+-- Order 2: Item C ($15)
+-- 
+-- JOIN Result:
+-- John Doe, Order 1, Item A, $10
+-- John Doe, Order 1, Item B, $20  
+-- John Doe, Order 2, Item C, $15
+-- 
+-- SUM = $45 ✓ (korrekt)
+
+-- Aber bei komplexeren JOINs kann es zu Duplikaten kommen
+
+-- Schritt 4: Alternative Approaches
+-- Approach 1: Subquery
+SELECT c.name,
+       (SELECT SUM(oi.price * oi.quantity) 
+        FROM orders o 
+        JOIN order_items oi ON o.id = oi.order_id 
+        WHERE o.customer_id = c.id AND o.status = 'completed') as total_spent
+FROM customers c;
+
+-- Approach 2: CTE (Common Table Expression)
+WITH customer_totals AS (
+    SELECT o.customer_id, SUM(oi.price * oi.quantity) as total_spent
+    FROM orders o
+    JOIN order_items oi ON o.id = oi.order_id
+    WHERE o.status = 'completed'
+    GROUP BY o.customer_id
+)
+SELECT c.name, COALESCE(ct.total_spent, 0) as total_spent
+FROM customers c
+LEFT JOIN customer_totals ct ON c.id = ct.customer_id;
+```
+
+### **Szenario 3: Deadlock zwischen zwei Transactions**
+```sql
+-- Problem: Regelmäßige Deadlocks bei Account-Updates
+
+-- Transaction 1 (Transfer von Account 1 zu Account 2):
+BEGIN;
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+-- ... andere Logic ...
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+COMMIT;
+
+-- Transaction 2 (Transfer von Account 2 zu Account 1):
+BEGIN;
+UPDATE accounts SET balance = balance - 50 WHERE id = 2;
+-- ... andere Logic ...
+UPDATE accounts SET balance = balance + 50 WHERE id = 1;
+COMMIT;
+
+-- Schritt 1: Deadlock-Log analysieren
+SHOW ENGINE INNODB STATUS;  -- MySQL
+-- Oder PostgreSQL-Log prüfen
+
+-- Schritt 2: Lock-Reihenfolge identifizieren
+-- Transaction 1: Lock Account 1, dann Account 2
+-- Transaction 2: Lock Account 2, dann Account 1
+-- -> Circular Wait = Deadlock
+
+-- Schritt 3: Lösung - Konsistente Lock-Reihenfolge
+-- Beide Transactions locken immer in derselben Reihenfolge (z.B. nach ID)
+
+-- Improved Transaction 1:
+BEGIN;
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;  -- Kleinere ID zuerst
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;  -- Größere ID danach
+COMMIT;
+
+-- Improved Transaction 2:
+BEGIN;
+UPDATE accounts SET balance = balance + 50 WHERE id = 1;   -- Kleinere ID zuerst
+UPDATE accounts SET balance = balance - 50 WHERE id = 2;   -- Größere ID danach
+COMMIT;
+
+-- Schritt 4: Alternative - Single Statement
+-- Noch besser: Beide Updates in einem Statement
+UPDATE accounts 
+SET balance = CASE 
+    WHEN id = 1 THEN balance + (50 - 100)  -- Net change for account 1
+    WHEN id = 2 THEN balance + (100 - 50)  -- Net change for account 2
+END
+WHERE id IN (1, 2);
+```
+
+### **Szenario 4: OUT of Memory bei großen Queries**
+```sql
+-- Problem: Query bricht mit Memory-Error ab
+
+-- Problematische Query:
+SELECT * 
+FROM large_table lt1
+CROSS JOIN large_table lt2  -- Kartesisches Produkt!
+WHERE lt1.status = 'active';
+
+-- Schritt 1: Query-Structure analysieren
+-- CROSS JOIN von 1M x 1M Records = 1 Trillion Records!
+
+-- Schritt 2: Ergebnis-Größe schätzen
+SELECT COUNT(*) FROM large_table WHERE status = 'active';  -- z.B. 100,000
+-- Cross Join würde 100,000 * 1,000,000 = 100 Billion Records erzeugen
+
+-- Schritt 3: Query korrigieren
+-- Wahrscheinlich sollte es ein INNER JOIN sein:
+SELECT lt1.*, lt2.*
+FROM large_table lt1
+INNER JOIN large_table lt2 ON lt1.related_id = lt2.id
+WHERE lt1.status = 'active';
+
+-- Schritt 4: Bei legitimen großen Queries - Batching
+-- Statt alle auf einmal:
+SELECT * FROM very_large_table WHERE some_condition;
+
+-- Batch-Processing:
+SELECT * FROM very_large_table 
+WHERE some_condition 
+AND id BETWEEN 1 AND 10000;
+
+SELECT * FROM very_large_table 
+WHERE some_condition 
+AND id BETWEEN 10001 AND 20000;
+-- etc.
+
+-- Schritt 5: Memory-Parameter anpassen (als letzter Ausweg)
+-- MySQL:
+SET SESSION tmp_table_size = 1024*1024*1024;  -- 1GB
+SET SESSION max_heap_table_size = 1024*1024*1024;  -- 1GB
+
+-- PostgreSQL:
+SET work_mem = '1GB';
+```
+
+## 🚀 Profi-Tipps für SQL-Debugging
+
+### **Query-Performance-Monitoring:**
+```sql
+-- MySQL: Slow Query Log analysieren
+-- my.cnf:
+-- slow_query_log = 1
+-- long_query_time = 1
+-- log_queries_not_using_indexes = 1
+
+-- Slow Queries finden:
+SELECT * FROM mysql.slow_log ORDER BY start_time DESC LIMIT 10;
+
+-- PostgreSQL: pg_stat_statements Extension
+-- postgresql.conf:
+-- shared_preload_libraries = 'pg_stat_statements'
+
+-- Top Slow Queries:
+SELECT query, mean_time, calls, total_time
+FROM pg_stat_statements 
+ORDER BY mean_time DESC 
+LIMIT 10;
+```
+
+### **Index-Monitoring:**
+```sql
+-- Unused Indexes finden (MySQL):
+SELECT DISTINCT
+    t.table_schema,
+    t.table_name,
+    i.index_name
+FROM information_schema.tables t
+INNER JOIN information_schema.statistics i ON t.table_name = i.table_name
+LEFT JOIN information_schema.key_column_usage k ON i.index_name = k.constraint_name
+WHERE t.table_schema NOT IN ('information_schema', 'mysql', 'performance_schema')
+AND k.constraint_name IS NULL;
+
+-- Index-Usage (PostgreSQL):
+SELECT schemaname, tablename, indexname, idx_scan, idx_tup_read, idx_tup_fetch
+FROM pg_stat_user_indexes
+ORDER BY idx_scan ASC;  -- Niedrige idx_scan = wenig genutzt
+```
+
+### **Connection-Monitoring:**
+```sql
+-- Connection-Pool-Status (MySQL):
+SHOW STATUS WHERE Variable_name LIKE 'Threads%' 
+   OR Variable_name LIKE 'Connections%'
+   OR Variable_name LIKE 'Max_used_connections';
+
+-- Connection-Details (PostgreSQL):
+SELECT datname, usename, application_name, client_addr, state, 
+       backend_start, query_start, query
+FROM pg_stat_activity
+WHERE state != 'idle'
+ORDER BY backend_start;
+```
+
+### **Debugging-Queries für verschiedene DBMS:**
+
+#### **MySQL-spezifische Debugging-Queries:**
+```sql
+-- InnoDB-Status (Locks, Deadlocks, etc.)
+SHOW ENGINE INNODB STATUS;
+
+-- Buffer Pool Efficiency
+SELECT 
+  VARIABLE_NAME,
+  VARIABLE_VALUE
+FROM information_schema.GLOBAL_STATUS
+WHERE VARIABLE_NAME IN (
+  'Innodb_buffer_pool_read_requests',
+  'Innodb_buffer_pool_reads',
+  'Innodb_buffer_pool_read_ahead',
+  'Innodb_buffer_pool_pages_total',
+  'Innodb_buffer_pool_pages_free'
+);
+
+-- Query Cache Hit Rate
+SHOW STATUS LIKE 'Qcache%';
+```
+
+#### **PostgreSQL-spezifische Debugging-Queries:**
+```sql
+-- Bloat in Tables und Indexes
+SELECT schemaname, tablename, 
+       pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size,
+       pg_size_pretty(pg_relation_size(schemaname||'.'||tablename)) as table_size,
+       pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename) - pg_relation_size(schemaname||'.'||tablename)) as index_size
+FROM pg_tables 
+WHERE schemaname NOT IN ('information_schema', 'pg_catalog')
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+
+-- Vacuum und Analyze Status
+SELECT schemaname, tablename, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze
+FROM pg_stat_user_tables
+ORDER BY last_autoanalyze ASC;
+```
+
+## 💡 SQL Debugging Merksätze
+
+1. **EXPLAIN first** - Verstehe den Execution Plan vor Optimierung
+2. **Index strategically** - Nicht alle Spalten brauchen Indexes
+3. **JOIN carefully** - Verstehe INNER vs LEFT vs RIGHT JOINs
+4. **Aggregate wisely** - GROUP BY, HAVING, ORDER BY können teuer sein
+5. **NULL aware** - NULL-Behandlung kann Ergebnisse verfälschen
+6. **Lock consistently** - Konsistente Lock-Reihenfolge verhindert Deadlocks
+7. **Batch large operations** - Große Datenmengen in Batches verarbeiten
+8. **Monitor continuously** - Performance-Monitoring ist essentiell
+
+**SQL-Debugging ist eine Kombination aus Execution-Plan-Verständnis und Daten-Detective-Work!** 🔍
+
+<function_calls>
+<invoke name="TodoWrite">
+<parameter name="todos">[{"id": "1", "content": "Erstelle Docker Debugging Guide mit Beispielen", "status": "completed", "priority": "high"}, {"id": "2", "content": "Erstelle Kubernetes Debugging Guide mit Beispielen", "status": "completed", "priority": "high"}, {"id": "3", "content": "Erstelle Helm Debugging Guide mit Beispielen", "status": "completed", "priority": "high"}, {"id": "4", "content": "Erstelle Linux Debugging Guide mit Beispielen", "status": "completed", "priority": "high"}, {"id": "5", "content": "Erstelle SQL Debugging Guide mit Beispielen", "status": "completed", "priority": "high"}]

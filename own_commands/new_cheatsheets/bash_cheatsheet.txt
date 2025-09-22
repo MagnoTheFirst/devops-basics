@@ -1,0 +1,104 @@
+# Bash Cheat-Sheet (Essentielle Befehle & Debugging)
+
+## Dateisystem-Navigation
+pwd                         # aktuelles Verzeichnis anzeigen
+ls                          # Dateien/Verzeichnisse auflisten
+ls -l                       # detaillierte Liste
+ls -a                       # inklusive versteckter Dateien
+cd /pfad/zu/dir             # Verzeichnis wechseln
+cd ..                       # ein Verzeichnis nach oben
+cd -                        # ins vorherige Verzeichnis wechseln
+
+## Dateien & Verzeichnisse
+touch file.txt              # leere Datei erstellen
+mkdir newdir                # neues Verzeichnis
+mkdir -p a/b/c              # rekursiv erstellen
+cp file1.txt file2.txt      # Datei kopieren
+cp -r dir1 dir2             # Verzeichnis kopieren
+mv file1.txt newname.txt    # Datei verschieben/umbenennen
+rm file.txt                 # Datei löschen
+rm -r dir                   # Verzeichnis löschen (rekursiv)
+rm -rf dir                  # rekursiv + erzwingen (Vorsicht!)
+
+## Dateiinhalt ansehen
+cat file.txt                # Inhalt komplett ausgeben
+less file.txt               # seitenweise anzeigen (q = quit)
+head -n 20 file.txt         # erste 20 Zeilen
+tail -n 20 file.txt         # letzte 20 Zeilen
+tail -f app.log             # live Log verfolgen
+
+## Suche & Filter
+grep "Error" file.txt       # nach "Error" suchen
+grep -i "error" file.txt    # case-insensitive suchen
+grep -r "main()" src/       # rekursiv in Verzeichnis suchen
+grep -n "TODO" file.txt     # Zeilennummern anzeigen
+
+## Prozesse & System
+ps aux                      # alle Prozesse
+top                         # Live-Prozessübersicht
+htop                        # erweiterte Übersicht (falls installiert)
+kill <pid>                  # Prozess beenden
+kill -9 <pid>               # Prozess hart beenden (SIGKILL)
+lsof | grep <pid>           # offene Dateien/Sockets von Prozess
+
+## Festplatten & Speicher
+df -h                       # freie/benutzte Festplatten
+du -sh *                    # Größe der Ordner im aktuellen Verzeichnis
+free -h                     # Speicherverbrauch
+
+## Netzwerk
+ping -c4 google.com         # 4 Pings
+curl -I https://example.com # nur Header anfragen
+wget https://example.com    # Datei runterladen
+ss -lntp                    # offene Ports anzeigen
+netstat -tulpen             # offene Ports (ältere Systeme)
+
+## Archivieren & Komprimieren
+tar -cvf archive.tar dir/   # Verzeichnis packen
+tar -xvf archive.tar        # entpacken
+tar -czvf archive.tar.gz dir/   # gzip packen
+tar -xzvf archive.tar.gz        # gzip entpacken
+unzip file.zip              # ZIP entpacken
+zip file.zip file1 file2    # ZIP erstellen
+
+## Benutzer & Rechte
+whoami                      # aktueller Benutzer
+id                          # Benutzer- und Gruppeninfo
+chmod 644 file.txt          # Rechte ändern (rw-r--r--)
+chmod +x script.sh          # ausführbar machen
+chown user:group file.txt   # Besitzer ändern
+
+## Variablen & Umgebung
+echo $HOME                  # Inhalt einer Variable
+export VAR=value            # Umgebungsvariable setzen
+env                         # alle Variablen anzeigen
+
+## Nützliche Operatoren
+command1 && command2        # führe 2 nur aus, wenn 1 erfolgreich
+command1 || command2        # führe 2 nur aus, wenn 1 fehlschlägt
+command > out.txt           # Ausgabe in Datei schreiben
+command >> out.txt          # an Datei anhängen
+command 2> error.txt        # Fehlerausgabe umleiten
+
+## Pakete (Debian/Ubuntu)
+apt update                  # Paketquellen aktualisieren
+apt install htop            # Paket installieren
+apt remove <pkg>            # Paket deinstallieren
+
+## Typische Debug-Flows
+
+A) Hohe CPU-Last
+1. top / htop starten
+2. PID herausfinden
+3. lsof -p <pid> → offene Dateien prüfen
+4. strace -p <pid> (falls installiert) → Syscalls checken
+
+B) Festplatte voll
+1. df -h → welche Partition?
+2. cd /mnt/... && du -sh * → größte Ordner finden
+3. Logs / Cache / Images aufräumen
+
+C) Netzwerkprobleme
+1. ping <ziel>
+2. curl -v <url> → HTTP prüfen
+3. ss -lntp → horcht Service auf Port?

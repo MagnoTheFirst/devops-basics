@@ -1,0 +1,376 @@
+ls
+
+The ls command has a variety of options to customize its output:
+
+    -l - Long listing format
+    -a - Include hidden files
+    -h - Human-readable sizes
+    -t - Sort by modification time
+    -r - Reverse order while sorting
+    -R - List subdirectories recursively
+    -S - Sort by file size
+    -1 - List one file per line
+    -d - List directories themselves, not their contents
+    -F - Append indicator (one of */=@|) to entries
+
+
+>> Human-Readable Sizes
+
+The -h option makes file sizes easier to read by converting byte counts into kilobytes (K), megabytes (M), gigabytes (G), etc.
+
+This option is particularly useful when you want to quickly assess the size of files and directories without manually converting bytes.
+
+
+>> Sorting by Time
+
+The -t option sorts files and directories by modification time, with the most recently modified files first.
+
+This option is useful when you want to see the most recently updated files first.
+
+
+>> Reverse Order
+
+The -r option reverses the order of the sort.
+
+When used in combination with other options like -t, it can display the oldest files first.
+
+This option is useful for reversing the default sorting behavior to meet specific needs.
+
+
+>> Recursive Listing
+
+The -R option lists directories and their contents recursively.
+
+This is useful for viewing the entire directory tree.
+
+
+>> Sort by Size
+
+The -S option sorts files by size, with the largest files first.
+
+This is helpful for quickly identifying large files in a directory.
+
+
+>> One File per Line
+
+The -1 option lists one file per line, which is useful for scripts or when piping output to other commands.
+
+
+>> Directories Only
+
+The -d option lists directories themselves rather than their contents.
+
+This is useful for seeing directory names without contents.
+
+
+Options Overview
+
+The cd command supports several useful options for navigating directories:
+
+    cd ..: Move up one directory level
+    cd ~: Change to the home directory
+    cd -: Switch to the previous directory
+    cd /: Change to the root directory
+
+
+Options Overview
+
+The echo command has several options to customize its output:
+
+    -n - Don't add a new line at the end
+    -e - Allow special characters like \n for new lines
+    -E - Don't allow special characters (default)
+
+
+>> -n Option: No Trailing Newline
+
+The -n option prevents echo from adding a newline at the end of the output.
+
+This is useful when you want to continue output on the same line.
+
+
+>> -e Option: Enable Backslash Escapes
+
+The -e option enables the use of backslash escapes like \n for new lines, \t for tabs, etc.
+
+This allows for more formatted output.
+echo -e "Hello\nWorld!"
+Hello
+World!
+
+>> -E Option: Disable Backslash Escapes
+
+The -E option disables the use of backslash escapes, which is the default behavior.
+
+This ensures that the text is output exactly as typed.
+
+The cat command has options to change how it shows text:
+
+    -n - Add numbers to each line
+    -b - Add numbers only to lines with text
+    -s - Remove extra empty lines
+    -v - Show non-printing characters (except for tabs and end of line)
+
+>> Concatenate Two Files
+
+The cat command can be used to concatenate multiple files into one.
+
+This is useful for combining files or appending content to an existing file.
+
+cat file1.txt file2.txt > combined.txt
+
+
+cp 
+
+Options
+
+The cp command has options to change how it works:
+
+    -r - Copy all files and folders inside a directory
+    -i - Ask before replacing files
+    -u - Copy only if the source is newer
+    -v - Verbose mode, show files being copied
+
+
+-v Option: Verbose Mode
+
+The -v option enables verbose mode, which displays the files being copied in the terminal.
+
+This is useful for tracking the copy process, especially when dealing with many files.
+
+cp -v my_file.txt copy_of_my_file.txt
+'my_file.txt' -> 'copy_of_my_file.txt'
+
+
+The grep command has options to change how it works:
+
+    -i - Search ignoring case differences (uppercase or lowercase)
+    -r - Search through all files in a directory and its subdirectories
+    -v - Find lines that do not match the pattern
+
+$grep -i 'shell' file.txt
+Understanding Shells
+A shell is a text-based interface that lets you talk to your computer.
+There are different types of shells. Bash (Bourne Again SHell)
+
+>> Recursive search
+$grep -r 'search_term' /home/user/my_directory
+/home/user/.my_secret_file:A shell is a text-based interface that lets you talk to your computer.
+/home/user/.my_secret_file:There are different types of shells. Bash (Bourne Again SHell)
+/home/user/.my_secret_file:Bourne Shell (sh): The original Unix shell, developed by Stephen Bourne.
+/home/user/copy_of_my_file.txt:A shell is a text-based interface that lets you talk to your computer.
+/home/user/copy_of_my_file.txt:There are different types of shells. Bash (Bourne Again SHell)
+/home/user/myfolder/my_file.txt:A shell is a text-based interface that lets you talk to your computer.
+/home/user/myfolder/my_file.txt:There are different types of shells. Bash (Bourne Again SHell)
+/home/user/my_file.txt:A shell is a text-based interface that lets you talk to your computer.
+/home/user/my_file.txt:There are different types of shells. Bash (Bourne Again SHell)
+
+
+>> Invert Match
+
+The -v option finds lines that do not match the pattern.
+
+$grep -v 'shell' my_file.txt
+Understanding Shells
+
+
+Using grep with Regular Expressions
+
+Regular expressions allow you to search for complex patterns.
+
+For example, grep '^[A-Za-z]' file.txt finds lines starting with a letter.
+$grep '^[A-Za-z]' my_file.txt
+Understanding Shells
+A shell is a text-based interface that lets you talk to your computer.
+There are different types of shells. Bash (Bourne Again SHell)
+is popular because it's powerful and easy to use.
+
+
+Options
+
+The sort command has options to change how it works:
+
+    -r - Sort in reverse order
+    -n - Sort numbers correctly
+    -k - Sort by a specific column
+    -u - Remove duplicate lines
+    -t - Specify a delimiter for fields
+
+
+The ps command has options to change how it works:
+
+    -e - Show all processes
+    -f - Show detailed information
+    -u - Show processes for a specific user
+    -a - Show all processes with a terminal
+    -x - Show processes without a terminal
+
+
+
+Options
+
+The top command has options to change how it works:
+
+    -d - Set the time between updates
+    -p - Monitor specific PIDs
+    -u - Show tasks for a specific user
+    -n - Set the number of iterations
+    -b - Batch mode operation
+
+
+Understanding the Output
+
+The df command output consists of several columns, each representing different aspects of the file system's disk usage:
+
+    Filesystem: The name of the file system.
+    1K-blocks: Total size of the file system in 1K blocks.
+    Used: Amount of space used.
+    Available: Amount of space available for use.
+    Use%: Percentage of space used.
+    Mounted on: Directory where the file system is mounted.
+
+Options
+
+The df command has options to change how it works:
+
+    -h - Show sizes in human-readable format (e.g., KB, MB)
+    -a - Show all file systems, even empty ones
+    -T - Show the type of file system
+    -i - Show inode usage
+    -P - Use POSIX output format
+
+
+Options
+
+The du command has options to change how it works:
+
+    -h - Show sizes in human-readable format (e.g., KB, MB)
+    -s - Show only the total size for each item
+    -a - Show sizes for all files, not just directories
+    -c - Produce a grand total
+    --max-depth=N - Limit the depth of directory traversal
+
+
+The free command has options to change how it works:
+
+    -h - Show memory in human-readable format (e.g., KB, MB, GB)
+    -b - Show memory in bytes
+    -k - Show memory in kilobytes (KB)
+    -m - Show memory in megabytes (MB)
+    -g - Show memory in gigabytes (GB)
+    -s [interval] - Continuously display memory usage at specified intervals
+    -t - Display total memory
+
+Options
+
+The kill command has several options to customize its behavior:
+
+    -9: Forcefully terminate a process.
+    -l: List all signal names.
+    -s [signal]: Specify a signal to send.
+    -p: Print the process ID.
+
+
+Options
+
+The ping command has options to change how it works:
+
+    -c - Send a specific number of ping requests
+    -i - Wait a specific number of seconds between sending each packet
+    -t - Set the IP Time to Live (TTL)
+    -q - Quiet output, only show summary
+    -s - Specify the number of data bytes to be sent
+
+
+curl
+
+The curl command has options to change how it works:
+
+    -O - Save the file with the same name as the remote file
+    -L - Follow redirects
+    -I - Fetch the HTTP headers only
+    -d - Send data with POST request
+    -u - Specify user and password for server authentication
+
+Save the File with the Same Name as the Remote File
+
+The -O option allows you to save the file with the same name as the remote file.
+
+This is useful for downloading files directly to your local system with their original names.
+
+$curl -O http://example.com/file.txt
+
+
+Fetch the HTTP Headers Only
+
+The -I option allows you to fetch the HTTP headers only.
+
+This is useful for checking server response headers without downloading the entire content.
+
+$curl -I http://example.com
+# Output:
+# HTTP/1.1 200 OK
+# Date: Wed, 10 Apr 2025 10:00:00 GMT
+# Content-Type: text/html; charset=UTF-8
+# Connection: keep-alive
+
+Send Data with POST Request
+
+The -d option allows you to send data with a POST request. This is useful for submitting form data or interacting with APIs.
+
+$curl -d "fname=John" https://www.example.com/action_page.php
+Submitted Form Data
+Your input was received as:
+
+fname=John 
+
+
+Specify User and Password for Server Authentication
+
+The -u option allows you to specify a user and password for server authentication. This is useful for accessing protected resources.
+
+$curl -u user:password http://example.com/protected
+Hello, this is a test file.
+There are three lines here.
+This is the last line.
+
+
+SSH Options
+
+Here are some common options you can use with the ssh command:
+
+    -p - Specify the port
+    -i - Use a private key file
+    -v - Enable verbose mode
+    -C - Enable compression
+    -X - Enable X11 forwarding
+    -o - Specify options directly on the command line
+$ssh -p 2222 user@example.com
+
+Option: -i (Identity File)
+
+The -i option allows you to specify a private key file for authentication.
+
+This is useful when you have a specific key for a server.
+
+$ssh -i /path/to/private_key user@example.com
+user@example.com:~ $
+
+Option: -v (Verbose Mode)
+
+The -v option enables verbose mode, which provides detailed information about the SSH connection process.
+
+This is helpful for debugging.
+
+$ssh -v user@example.com
+OpenSSH_9.6p1, OpenSSL 3.2.1 30 Jan 2024
+debug1: Reading configuration data /home/users/.ssh/config
+debug1: Reading configuration data /etc/ssh/ssh_config
+debug1: Connecting to example.com port 22.
+debug1: Connection established.
+
+
+
+-------------------------------------------------------------------------------
+
+

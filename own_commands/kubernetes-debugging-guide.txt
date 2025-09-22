@@ -1,0 +1,464 @@
+# Kubernetes Debugging Guide
+
+## 🔍 Systematisches Kubernetes Debugging
+
+### **Schritt 1: Cluster-Übersicht verschaffen**
+```bash
+# Cluster-Status
+kubectl cluster-info
+kubectl get nodes
+kubectl get namespaces
+```
+
+### **Schritt 2: Problem-Bereich identifizieren**
+```bash
+# Alle Ressourcen im Namespace anzeigen
+kubectl get all -n [namespace]
+# Beispiel: kubectl get all -n production
+
+# Events anzeigen (zeigt oft das Problem)
+kubectl get events --sort-by=.metadata.creationTimestamp
+# Beispiel: kubectl get events -n production --sort-by=.metadata.creationTimestamp
+```
+
+## 🚨 Häufige Kubernetes-Probleme und Lösungen
+
+### **Problem 1: Pod startet nicht (Pending/CrashLoopBackOff)**
+
+#### **Symptom:**
+```bash
+kubectl get pods
+# STATUS: Pending, CrashLoopBackOff, ImagePullBackOff
+```
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Pod-Details anzeigen
+kubectl describe pod [pod-name]
+# Beispiel: kubectl describe pod nginx-deployment-abc123
+
+# 2. Pod-Logs anschauen
+kubectl logs [pod-name]
+# Beispiel: kubectl logs nginx-deployment-abc123
+
+# 3. Vorherige Container-Logs (bei Crash)
+kubectl logs [pod-name] --previous
+# Beispiel: kubectl logs nginx-deployment-abc123 --previous
+
+# 4. Multi-Container Pod: Spezifischen Container
+kubectl logs [pod-name] -c [container-name]
+# Beispiel: kubectl logs web-pod -c nginx-container
+```
+
+#### **Häufige Pod-Stati und Bedeutung:**
+```
+Pending           = Warten auf Scheduling/Ressourcen
+Running           = Pod läuft normal
+Succeeded         = Pod erfolgreich beendet
+Failed            = Pod mit Fehler beendet
+CrashLoopBackOff  = Container crasht wiederholt
+ImagePullBackOff  = Image kann nicht geladen werden
+ContainerCreating = Container wird erstellt
+Terminating       = Pod wird beendet
+```
+
+### **Problem 2: Service nicht erreichbar**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Service-Details anzeigen
+kubectl get svc [service-name]
+kubectl describe svc [service-name]
+# Beispiel: kubectl describe svc nginx-service
+
+# 2. Endpoints prüfen (welche Pods sind verbunden)
+kubectl get endpoints [service-name]
+# Beispiel: kubectl get endpoints nginx-service
+
+# 3. Pod-Labels mit Service-Selector vergleichen
+kubectl get pods --show-labels
+kubectl describe svc [service-name] | grep Selector
+# Beispiel: kubectl describe svc nginx-service | grep Selector
+
+# 4. Aus Pod heraus Service testen
+kubectl exec -it [pod-name] -- nslookup [service-name]
+# Beispiel: kubectl exec -it debug-pod -- nslookup nginx-service
+
+# 5. Port-Forward zum direkten Test
+kubectl port-forward svc/[service-name] [local-port]:[service-port]
+# Beispiel: kubectl port-forward svc/nginx-service 8080:80
+```
+
+### **Problem 3: Deployment funktioniert nicht**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Deployment-Status
+kubectl get deployment [deployment-name]
+kubectl describe deployment [deployment-name]
+# Beispiel: kubectl describe deployment nginx-deployment
+
+# 2. ReplicaSet-Status
+kubectl get rs
+kubectl describe rs [replicaset-name]
+# Beispiel: kubectl describe rs nginx-deployment-xyz
+
+# 3. Rollout-Status
+kubectl rollout status deployment/[deployment-name]
+# Beispiel: kubectl rollout status deployment/nginx-deployment
+
+# 4. Rollout-Historie
+kubectl rollout history deployment/[deployment-name]
+# Beispiel: kubectl rollout history deployment/nginx-deployment
+
+# 5. Events filtern
+kubectl get events --field-selector involvedObject.name=[deployment-name]
+# Beispiel: kubectl get events --field-selector involvedObject.name=nginx-deployment
+```
+
+### **Problem 4: Ingress/LoadBalancer nicht erreichbar**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. Ingress-Status
+kubectl get ingress
+kubectl describe ingress [ingress-name]
+# Beispiel: kubectl describe ingress web-ingress
+
+# 2. Ingress-Controller-Logs
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+# Für nginx-ingress
+
+# 3. LoadBalancer-Service-Status
+kubectl get svc -o wide
+# Zeigt EXTERNAL-IP für LoadBalancer
+
+# 4. DNS-Test von Pod aus
+kubectl exec -it [pod-name] -- nslookup [ingress-hostname]
+# Beispiel: kubectl exec -it debug-pod -- nslookup myapp.example.com
+
+# 5. Curl-Test aus Pod
+kubectl exec -it [pod-name] -- curl -H "Host: [hostname]" [service-ip]
+# Beispiel: kubectl exec -it debug-pod -- curl -H "Host: myapp.com" 10.0.1.100
+```
+
+### **Problem 5: Persistente Volumes funktionieren nicht**
+
+#### **Debugging-Schritte:**
+```bash
+# 1. PV und PVC Status
+kubectl get pv
+kubectl get pvc
+# Zeigt STATUS: Bound, Pending, Available
+
+# 2. PVC-Details
+kubectl describe pvc [pvc-name]
+# Beispiel: kubectl describe pvc data-claim
+
+# 3. PV-Details
+kubectl describe pv [pv-name]
+# Beispiel: kubectl describe pv pv-storage-001
+
+# 4. Pod-Volume-Mounts
+kubectl describe pod [pod-name] | grep -A5 Mounts
+# Beispiel: kubectl describe pod database-pod | grep -A5 Mounts
+
+# 5. Storage-Class prüfen
+kubectl get storageclass
+kubectl describe storageclass [sc-name]
+# Beispiel: kubectl describe storageclass fast-ssd
+```
+
+## 🔧 Erweiterte Debugging-Techniken
+
+### **Node-Probleme debuggen**
+```bash
+# 1. Node-Status und Ressourcen
+kubectl get nodes -o wide
+kubectl describe node [node-name]
+# Beispiel: kubectl describe node worker-node-1
+
+# 2. Node-Ressourcenverbrauch
+kubectl top nodes
+kubectl top pods --all-namespaces
+
+# 3. Node-Events
+kubectl get events --field-selector source=node-controller
+
+# 4. Node-Bedingungen prüfen
+kubectl get nodes -o jsonpath='{.items[*].status.conditions[?(@.type=="Ready")].status}'
+
+# 5. Auf Node einloggen (wenn möglich)
+kubectl debug node/[node-name] -it --image=ubuntu
+# Beispiel: kubectl debug node/worker-node-1 -it --image=ubuntu
+```
+
+### **Netzwerk-Probleme debuggen**
+```bash
+# 1. NetworkPolicies prüfen
+kubectl get networkpolicy --all-namespaces
+
+# 2. DNS-Funktionalität testen
+kubectl run dns-test --image=busybox:1.28 --rm -it --restart=Never -- nslookup kubernetes.default
+
+# 3. Pod-zu-Pod-Kommunikation testen
+kubectl exec -it [source-pod] -- ping [target-pod-ip]
+# Beispiel: kubectl exec -it web-pod -- ping 10.244.1.5
+
+# 4. Service-Discovery testen
+kubectl exec -it [pod-name] -- nslookup [service-name].[namespace].svc.cluster.local
+# Beispiel: kubectl exec -it web-pod -- nslookup database.production.svc.cluster.local
+
+# 5. Netzwerk-Debug-Pod starten
+kubectl run netshoot --rm -i --tty --image nicolaka/netshoot -- /bin/bash
+```
+
+### **RBAC/Security-Probleme debuggen**
+```bash
+# 1. Aktuelle Berechtigungen prüfen
+kubectl auth can-i [verb] [resource]
+# Beispiel: kubectl auth can-i create pods
+
+# 2. ServiceAccount-Berechtigungen
+kubectl auth can-i [verb] [resource] --as=system:serviceaccount:[namespace]:[sa-name]
+# Beispiel: kubectl auth can-i create pods --as=system:serviceaccount:default:my-sa
+
+# 3. RBAC-Ressourcen anzeigen
+kubectl get clusterroles,clusterrolebindings,roles,rolebindings --all-namespaces
+
+# 4. ServiceAccount-Details
+kubectl describe serviceaccount [sa-name]
+# Beispiel: kubectl describe serviceaccount default
+
+# 5. Pod-Security-Context prüfen
+kubectl get pod [pod-name] -o jsonpath='{.spec.securityContext}'
+# Beispiel: kubectl get pod nginx-pod -o jsonpath='{.spec.securityContext}'
+```
+
+## 📋 Kubernetes Debugging Checkliste
+
+### **Bei jedem Problem zuerst:**
+```bash
+1. kubectl get all -n [namespace]    # Übersicht
+2. kubectl get events --sort-by=.metadata.creationTimestamp # Events
+3. kubectl describe [resource] [name] # Detaillierte Infos
+4. kubectl logs [pod-name]           # Logs anschauen
+```
+
+### **Pod startet nicht:**
+```bash
+1. kubectl describe pod [pod-name]     # Events und Conditions
+2. kubectl logs [pod-name] --previous  # Crash-Logs
+3. kubectl get events | grep [pod-name] # Pod-spezifische Events
+4. kubectl get nodes                   # Node-Kapazität prüfen
+```
+
+### **Service nicht erreichbar:**
+```bash
+1. kubectl get endpoints [service-name] # Backend-Pods
+2. kubectl describe svc [service-name]  # Selector und Ports
+3. kubectl get pods --show-labels      # Pod-Labels prüfen
+4. kubectl port-forward                # Direkter Test
+```
+
+### **Deployment-Probleme:**
+```bash
+1. kubectl rollout status deployment/[name] # Rollout-Status
+2. kubectl describe deployment [name]       # Deployment-Events
+3. kubectl get rs                          # ReplicaSet-Status
+4. kubectl rollout history deployment/[name] # Rollout-Historie
+```
+
+## 🎯 Praktische Debugging-Szenarien
+
+### **Szenario 1: Web-App Pod crasht wiederholt**
+```bash
+# Problem: Pod Status zeigt CrashLoopBackOff
+
+# Schritt 1: Pod-Status detailliert
+kubectl describe pod web-app-abc123
+# Schaue nach "Last State" und "Events"
+
+# Schritt 2: Container-Logs
+kubectl logs web-app-abc123 --previous
+# --previous zeigt Logs vor dem letzten Restart
+
+# Schritt 3: Live-Logs während Restart
+kubectl logs -f web-app-abc123
+# Folge den Logs in Echtzeit
+
+# Schritt 4: Resource-Limits prüfen
+kubectl describe pod web-app-abc123 | grep -A5 Limits
+# Memory/CPU-Limits zu niedrig?
+
+# Schritt 5: Liveness/Readiness Probes
+kubectl describe pod web-app-abc123 | grep -A5 Probe
+# Probe-Konfiguration korrekt?
+
+# Schritt 6: Interaktiv in ähnlichem Pod debuggen
+kubectl run debug-pod --rm -it --image=[same-image] -- /bin/bash
+# Teste die Anwendung manuell
+```
+
+### **Szenario 2: Service gibt 503/504 Errors**
+```bash
+# Problem: LoadBalancer gibt 503 Service Unavailable
+
+# Schritt 1: Service-Endpoints prüfen
+kubectl get endpoints my-service
+# Sind Backend-Pods verbunden?
+
+# Schritt 2: Backend-Pod-Health
+kubectl get pods -l app=my-app
+# Sind alle Pods READY?
+
+# Schritt 3: Pod-Readiness-Probe
+kubectl describe pod [pod-name] | grep Readiness
+# Schlägt Readiness-Probe fehl?
+
+# Schritt 4: Ingress-Controller-Logs
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller --tail=100
+# Errors im Ingress-Controller?
+
+# Schritt 5: Service-Selector vs Pod-Labels
+kubectl describe svc my-service | grep Selector
+kubectl get pods --show-labels
+# Stimmen die Labels überein?
+
+# Schritt 6: Direkter Pod-Test
+kubectl port-forward pod/[pod-name] 8080:80
+curl localhost:8080
+# Funktioniert der Pod direkt?
+```
+
+### **Szenario 3: Deployment bleibt hängen**
+```bash
+# Problem: Deployment zeigt 0/3 ready Replicas
+
+# Schritt 1: Rollout-Status
+kubectl rollout status deployment/my-app --timeout=60s
+# Ist Rollout stuck?
+
+# Schritt 2: ReplicaSet-Analysis
+kubectl get rs
+kubectl describe rs [newest-replicaset]
+# Warum werden keine Pods erstellt?
+
+# Schritt 3: Node-Ressourcen
+kubectl top nodes
+kubectl describe nodes
+# Genug Ressourcen auf Nodes?
+
+# Schritt 4: PodDisruptionBudgets
+kubectl get pdb --all-namespaces
+# Blockiert PDB das Deployment?
+
+# Schritt 5: Image-Pull-Probleme
+kubectl describe pod [pending-pod] | grep -A5 Events
+# Image-Pull-Errors?
+
+# Schritt 6: Scheduling-Constraints
+kubectl describe pod [pending-pod] | grep -A10 Events
+# Node-Affinity oder Taints?
+```
+
+### **Szenario 4: Persistent Volume nicht verfügbar**
+```bash
+# Problem: Pod kann nicht starten, PVC pending
+
+# Schritt 1: PVC-Status
+kubectl get pvc
+kubectl describe pvc my-data-claim
+# Warum ist PVC pending?
+
+# Schritt 2: Available PVs
+kubectl get pv
+# Gibt es passende PVs?
+
+# Schritt 3: StorageClass
+kubectl get storageclass
+kubectl describe storageclass [sc-name]
+# StorageClass konfiguriert?
+
+# Schritt 4: PV-Match-Kriterien
+kubectl describe pv [pv-name]
+kubectl describe pvc [pvc-name]
+# Size, AccessModes, StorageClass kompatibel?
+
+# Schritt 5: Storage-Provider-Logs
+kubectl logs -n kube-system -l app=storage-provisioner
+# Storage-Provider-Errors?
+
+# Schritt 6: Manual PV binding testen
+kubectl patch pv [pv-name] -p '{"spec":{"claimRef":{"name":"[pvc-name]","namespace":"[namespace]"}}}'
+```
+
+## 🚀 Profi-Tipps für Kubernetes-Debugging
+
+### **kubectl-Shortcuts und Aliases:**
+```bash
+# Nützliche Aliases in ~/.bashrc
+alias k=kubectl
+alias kgp='kubectl get pods'
+alias kgs='kubectl get svc'
+alias kgd='kubectl get deployment'
+alias kdp='kubectl describe pod'
+alias kds='kubectl describe svc'
+alias kl='kubectl logs'
+alias kpf='kubectl port-forward'
+
+# Namespace setzen
+kubectl config set-context --current --namespace=[namespace]
+```
+
+### **Erweiterte Log-Analyse:**
+```bash
+# Logs mehrerer Pods gleichzeitig
+kubectl logs -l app=my-app --tail=100
+
+# Logs mit Timestamps
+kubectl logs [pod-name] --timestamps=true
+
+# JSON-formatierte Logs
+kubectl get pods -o json | jq '.items[].status.phase'
+
+# Events nach Typ filtern
+kubectl get events --field-selector type=Warning
+```
+
+### **Debug-Container verwenden (K8s 1.18+):**
+```bash
+# Ephemeral Debug-Container in laufendem Pod
+kubectl debug [pod-name] -it --image=busybox --target=[container-name]
+
+# Debug-Container für CrashLoopBackOff Pod
+kubectl debug [pod-name] -it --image=busybox --copy-to=debug-copy
+
+# Node-Debugging
+kubectl debug node/[node-name] -it --image=ubuntu
+```
+
+### **Resource-Monitoring:**
+```bash
+# Top-Befehle für Ressourcen-Monitoring
+kubectl top nodes
+kubectl top pods --all-namespaces --sort-by=cpu
+kubectl top pods --all-namespaces --sort-by=memory
+
+# Resource-Quotas prüfen
+kubectl get resourcequota --all-namespaces
+kubectl describe resourcequota [quota-name]
+```
+
+## 💡 Kubernetes Debugging Merksätze
+
+1. **Events first** - `kubectl get events` zeigt meist das Problem
+2. **Describe everything** - `kubectl describe` gibt Details
+3. **Follow the logs** - `kubectl logs -f` für Live-Debugging  
+4. **Check the labels** - Service-Selector vs Pod-Labels
+5. **Node resources** - `kubectl top nodes` bei Scheduling-Problemen
+6. **DNS works?** - Netzwerk-Probleme oft DNS-related
+7. **Port-forward** - Direkter Test ohne Ingress/Service
+8. **Previous logs** - `--previous` bei CrashLoopBackOff
+
+**Kubernetes-Debugging ist Detektiv-Arbeit - folge den Hinweisen systematisch!** 🕵️‍♂️

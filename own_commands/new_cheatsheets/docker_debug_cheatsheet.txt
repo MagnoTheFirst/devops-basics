@@ -1,0 +1,104 @@
+# Docker Debugging Cheat-Sheet
+
+## Container finden & Status
+docker ps                      # laufende Container
+docker ps -a                   # alle (inkl. gestoppte)
+docker ps --filter name=api    # per Name filtern
+docker ps --format '{{.Names}}\t{{.Status}}'  # nur Name+Status
+
+## Logs analysieren
+docker logs <ctr>              # Stdout/Stderr
+docker logs -f <ctr>           # follow (tail -f)
+docker logs --since 10m <ctr>  # letzte 10 Min
+docker logs --tail 200 <ctr>   # letzte 200 Zeilen
+
+## In den Container rein (Shell)
+docker exec -it <ctr> sh       # BusyBox/Alpine
+docker exec -it <ctr> bash     # Debian/Ubuntu
+docker exec -it <ctr> env      # Env-Variablen prüfen
+
+## Prozesse & Ressourcen im Container
+docker top <ctr>               # Prozesse im Container
+docker stats                   # Live CPU/Mem/IO aller Container
+docker stats <ctr1> <ctr2>     # gezielt
+
+## Inspect: volle Details (Ports, Mounts, IP, Env)
+docker inspect <ctr> | less
+docker inspect --format '{{.NetworkSettings.IPAddress}}' <ctr>         # IP
+docker inspect --format '{{json .Mounts}}' <ctr> | jq                  # Volumes
+docker inspect --format '{{json .HostConfig.PortBindings}}' <ctr> | jq # Ports
+
+## Netzwerk-Debug
+docker network ls                         # Netzwerke
+docker network inspect <net> | less       # wer hängt dran?
+docker exec -it <ctr> ping -c1 8.8.8.8    # Basis-Konnektivität
+docker exec -it <ctr> nc -vz host 5432    # Port-Reachability testen (netcat)
+
+## Port-Mapping prüfen
+docker port <ctr>               # welche Hostports → Containerports?
+ss -lntp | grep <PORT>          # horcht der Host-Port?
+
+## Dateisystem & Volumes
+docker inspect --format '{{json .Mounts}}' <ctr> | jq   # Mounts checken
+docker volume ls                                       # Volumes auf Host
+docker volume inspect <vol>                             # Details
+docker run --rm -it -v <vol>:/mnt busybox sh           # in Volume reinschauen
+
+## Dateien kopieren (Host ↔ Container)
+docker cp <ctr>:/path/in/ctr/file ./file       # vom Container zum Host
+docker cp ./localfile <ctr>:/path/in/ctr/      # vom Host in den Container
+
+## Container-Lifecycle steuern
+docker restart <ctr>            # neu starten
+docker stop <ctr>               # sauber stoppen
+docker kill <ctr>               # hart beenden (SIGKILL)
+docker rm <ctr>                 # Container löschen
+docker rm -f <ctr>              # forcieren (kill + rm)
+
+## Images & Disk Usage
+docker images                   # Images anzeigen
+docker history <image>          # Layer-Größe prüfen
+docker system df                # Platzverbrauch
+docker system prune             # unbenutztes aufräumen (fragt nach)
+docker image prune -a           # alle unbenutzten Images löschen (vorsicht!)
+
+## Build/Run (mit Debug-Flags)
+docker build -t myapp:dev .                         # Image bauen
+docker run --rm -it -p 8080:8080 myapp:dev         # interaktiv starten
+docker run -d --name api -p 8080:8080 myapp:dev    # detached, benannt
+docker run -e LOG_LEVEL=debug ...                  # Env injizieren
+docker run -v $(pwd)/conf:/app/conf:ro ...         # Config reinmounten
+
+## Events & Healthchecks
+docker events                   # Live-Events (Start/Stop/Die/Health)
+docker inspect --format '{{json .State.Health}}' <ctr> | jq   # Health-Status
+
+## Exit-Code & letzter Crash
+docker inspect --format '{{.State.ExitCode}}' <ctr>      # Exit-Code
+docker inspect --format '{{.State.OOMKilled}}' <ctr>     # wegen OOM gekillt?
+
+## Compose
+docker compose ps                        # Status
+docker compose logs -f <svc>             # Logs eines Dienstes
+docker compose exec <svc> sh             # Shell in Service
+docker compose up -d --build             # neu bauen + starten
+docker compose down                      # stoppen + Netzwerke entfernen
+
+## Typische Debug-Flows
+
+A) Container startet & crasht sofort
+1. docker logs --tail 200 <ctr>
+2. docker inspect <ctr> → ExitCode, OOMKilled, Mounts, Env
+3. Ports/Config prüfen → docker port <ctr>, Mounts/Env
+4. Lokal reproduzieren → docker run --rm -it ...
+
+B) Läuft, aber nicht erreichbar
+1. docker ps → Port-Mapping?
+2. docker port <ctr> + ss -lntp | grep <hostport>
+3. Im Container: curl localhost:<containerPort>
+4. Host-Firewall/Proxy checken
+
+C) Daten weg / nicht persistiert
+1. inspect .Mounts → Volumes?
+2. docker volume ls / inspect <vol>
+3. reinschauen: docker run --rm -it -v <vol>:/mnt busybox sh
